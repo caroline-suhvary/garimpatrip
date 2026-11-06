@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
@@ -16,16 +16,16 @@ import {
   LogOut 
 } from "lucide-react";
 import styles from "@/styles/Navbar.module.css";
-import { supabase } from "@/lib/supabaseClient";
+import { useAuth } from "@/hooks/useAuth";
 
-// Links visíveis apenas para visitantes públicos
+// Links visiveis apenas para visitantes publicos
 const publicLinks = [
   { href: "/", label: "Descobrir", icon: Compass },
   { href: "/vitrine", label: "Vitrine", badge: "Exemplo", icon: Sparkles },
   { href: "/radar", label: "Radar", icon: TrendingDown },
 ];
 
-// Links visíveis quando a pessoa está logada
+// Links visiveis quando a pessoa esta logada
 const authenticatedLinks = [
   { href: "/", label: "Descobrir", icon: Compass },
   { href: "/vitrine", label: "Vitrine", badge: "Exemplo", icon: Sparkles },
@@ -37,66 +37,12 @@ const authenticatedLinks = [
 export const Navbar = () => {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
-  
-  // Estado real do Supabase
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userName, setUserName] = useState("");
-  const [userAvatar, setUserAvatar] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const { user, loading, signIn, signOut } = useAuth();
 
-  useEffect(() => {
-    // 1. Verifica sessão atual ao carregar
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        setIsLoggedIn(true);
-        const meta = session.user.user_metadata || {};
-        setUserName(meta.full_name || meta.name || session.user.email?.split("@")[0] || "Usuário");
-        setUserAvatar(meta.avatar_url || meta.picture || null);
-      } else {
-        setIsLoggedIn(false);
-        setUserName("");
-        setUserAvatar(null);
-      }
-    });
-
-    // 2. Escuta mudanças de autenticação em tempo real
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        setIsLoggedIn(true);
-        const meta = session.user.user_metadata || {};
-        setUserName(meta.full_name || meta.name || session.user.email?.split("@")[0] || "Usuário");
-        setUserAvatar(meta.avatar_url || meta.picture || null);
-      } else {
-        setIsLoggedIn(false);
-        setUserName("");
-        setUserAvatar(null);
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  const handleLoginGoogle = () => {
-    setLoading(true);
-    const next = typeof window !== "undefined" ? window.location.pathname + window.location.search : "/";
-    window.location.href = `/api/auth/login/google?next=${encodeURIComponent(next)}`;
-  };
-
-  const handleLogout = async () => {
-    try {
-      setLoading(true);
-      await supabase.auth.signOut();
-      setIsLoggedIn(false);
-      setUserName("");
-      setUserAvatar(null);
-    } catch (err: any) {
-      alert("Erro ao sair: " + (err?.message || err));
-    } finally {
-      setLoading(false);
-    }
-  };
+  const isLoggedIn = Boolean(user);
+  const meta = user?.user_metadata || {};
+  const userName = meta.full_name || meta.name || user?.email?.split("@")[0] || "Usuario";
+  const userAvatar = (meta.avatar_url || meta.picture || null) as string | null;
 
   const navLinks = isLoggedIn ? authenticatedLinks : publicLinks;
 
@@ -111,7 +57,7 @@ export const Navbar = () => {
     <header className={styles.header}>
       <div className={styles.container}>
         {/* LOGO */}
-        <Link href="/" className={styles.logo} aria-label="GarimpaTrip Início">
+        <Link href="/" className={styles.logo} aria-label="GarimpaTrip Inicio">
           <span className={styles.logoIcon}>
             <Compass size={22} strokeWidth={2.4} />
           </span>
@@ -120,8 +66,8 @@ export const Navbar = () => {
           </span>
         </Link>
 
-        {/* NAVEGAÇÃO CENTRAL (DESKTOP) */}
-        <nav className={styles.desktopNav} aria-label="Navegação principal">
+        {/* NAVEGACAO CENTRAL (DESKTOP) */}
+        <nav className={styles.desktopNav} aria-label="Navegacao principal">
           {navLinks.map(({ href, label, icon: Icon, badge }) => {
             const isActive = pathname === href;
             return (
@@ -138,9 +84,9 @@ export const Navbar = () => {
           })}
         </nav>
 
-        {/* AÇÕES DIREITA (DESKTOP) */}
+        {/* ACOES DIREITA (DESKTOP) */}
         <div className={styles.actions}>
-          <button type="button" className={styles.langBtn} aria-label="Idioma: português do Brasil">
+          <button type="button" className={styles.langBtn} aria-label="Idioma: portugues do Brasil">
             <Globe size={15} aria-hidden="true" />
             <span>PT-BR</span>
           </button>
@@ -149,7 +95,7 @@ export const Navbar = () => {
             <button 
               type="button" 
               className={styles.loginBtn}
-              onClick={handleLoginGoogle}
+              onClick={signIn}
               disabled={loading}
               title="Entrar com sua conta Google"
             >
@@ -169,7 +115,7 @@ export const Navbar = () => {
               <button 
                 type="button" 
                 className={styles.logoutBtn} 
-                onClick={handleLogout}
+                onClick={signOut}
                 disabled={loading}
                 title="Desconectar do GarimpaTrip"
               >
@@ -180,7 +126,7 @@ export const Navbar = () => {
           )}
         </div>
 
-        {/* BOTÃO MOBILE */}
+        {/* BOTAO MOBILE */}
         <button
           type="button"
           className={styles.menuToggle}
@@ -195,7 +141,7 @@ export const Navbar = () => {
       {/* PAINEL MOBILE */}
       {menuOpen && (
         <div className={styles.mobilePanel}>
-          <nav className={styles.mobileNav} aria-label="Navegação mobile">
+          <nav className={styles.mobileNav} aria-label="Navegacao mobile">
             <div className={styles.modeIndicator}>
               Status: <strong>{isLoggedIn ? `Logado como ${userName}` : "Visitante (Sem login)"}</strong>
             </div>
@@ -227,7 +173,7 @@ export const Navbar = () => {
                   type="button" 
                   className={styles.loginBtn}
                   onClick={() => {
-                    handleLoginGoogle();
+                    signIn();
                     setMenuOpen(false);
                   }}
                   disabled={loading}
@@ -239,7 +185,7 @@ export const Navbar = () => {
                   type="button" 
                   className={styles.loginBtn}
                   onClick={() => {
-                    handleLogout();
+                    signOut();
                     setMenuOpen(false);
                   }}
                   disabled={loading}
