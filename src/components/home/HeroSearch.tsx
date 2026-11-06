@@ -1,8 +1,9 @@
 'use client';
-// Barra de garimpo da página inicial: leva origem, destino e orçamento para /discover.
+// Barra de garimpo da página inicial com autocomplete: leva origem, destino e orçamento para /discover.
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MapPin, Search, DollarSign, ArrowRight } from 'lucide-react';
+import { AutocompleteInput } from '@/components/search/AutocompleteInput';
 import styles from '@/styles/Home.module.css';
 
 export function HeroSearch() {
@@ -21,27 +22,38 @@ export function HeroSearch() {
   return (
     <div className={styles.searchBar}>
       <form onSubmit={handleSearch} className={styles.searchForm}>
-        <div className={styles.inputField}>
-          <MapPin size={20} color="#6B7280" />
-          <div className={styles.inputContent}>
-            <label className={styles.inputLabel} htmlFor="hero-origin">Origem</label>
-            <input id="hero-origin" type="text" value={origin} onChange={(e) => setOrigin(e.target.value)} className={styles.textInput} placeholder="Cidade de partida" />
-          </div>
-        </div>
+        <AutocompleteInput
+          id="hero-origin"
+          label="Origem"
+          value={origin}
+          onChange={setOrigin}
+          placeholder="Cidade de partida"
+          icon={<MapPin size={20} color="#6B7280" />}
+        />
 
-        <div className={styles.inputField}>
-          <Search size={20} color="#F5B731" />
-          <div className={styles.inputContent}>
-            <label className={styles.inputLabel} htmlFor="hero-destination">Destino</label>
-            <input id="hero-destination" type="text" value={destination} onChange={(e) => setDestination(e.target.value)} className={styles.textInput} placeholder="Para onde quer viajar?" required />
-          </div>
-        </div>
+        <AutocompleteInput
+          id="hero-destination"
+          label="Destino"
+          value={destination}
+          onChange={setDestination}
+          placeholder="Para onde quer viajar?"
+          required
+          icon={<Search size={20} color="#F5B731" />}
+        />
 
         <div className={styles.inputField}>
           <DollarSign size={20} color="#10B981" />
           <div className={styles.inputContent}>
             <label className={styles.inputLabel} htmlFor="hero-budget">Teto de Orçamento (R$)</label>
-            <input id="hero-budget" type="number" min={0} value={budget} onChange={(e) => setBudget(e.target.value)} className={styles.textInput} placeholder="Ex: 3500" />
+            <input
+              id="hero-budget"
+              type="number"
+              min={0}
+              value={budget}
+              onChange={(e) => setBudget(e.target.value)}
+              className={styles.textInput}
+              placeholder="Ex: 3500"
+            />
           </div>
         </div>
 

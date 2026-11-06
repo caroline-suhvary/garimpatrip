@@ -3,17 +3,16 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { 
-  Sparkles, 
-  User, 
-  Globe, 
-  TrendingDown, 
-  Menu, 
-  X, 
-  BriefcaseBusiness, 
-  Plane, 
-  Compass, 
-  LogOut 
+import {
+  Sparkles,
+  User,
+  TrendingDown,
+  Menu,
+  X,
+  BriefcaseBusiness,
+  Plane,
+  Compass,
+  LogOut,
 } from "lucide-react";
 import styles from "@/styles/Navbar.module.css";
 import { useAuth } from "@/hooks/useAuth";
@@ -41,7 +40,8 @@ export const Navbar = () => {
 
   const isLoggedIn = Boolean(user);
   const meta = user?.user_metadata || {};
-  const userName = meta.full_name || meta.name || user?.email?.split("@")[0] || "Usuario";
+  const userName =
+    meta.full_name || meta.name || user?.email?.split("@")[0] || "Usuario";
   const userAvatar = (meta.avatar_url || meta.picture || null) as string | null;
 
   const navLinks = isLoggedIn ? authenticatedLinks : publicLinks;
@@ -71,12 +71,17 @@ export const Navbar = () => {
           {navLinks.map(({ href, label, icon: Icon, badge }) => {
             const isActive = pathname === href;
             return (
-              <Link 
-                key={href} 
-                href={href} 
-                className={`${styles.navLink} ${isActive ? styles.navLinkActive : ""}`}
-              >
-                {Icon && <Icon className={styles.linkIcon} size={16} aria-hidden="true" />}
+              <Link
+                key={href}
+                href={href}
+                className={`${styles.navLink} ${isActive ? styles.navLinkActive : ""}`}>
+                {Icon && (
+                  <Icon
+                    className={styles.linkIcon}
+                    size={16}
+                    aria-hidden="true"
+                  />
+                )}
                 <span>{label}</span>
                 {badge && <span className={styles.badge}>{badge}</span>}
               </Link>
@@ -86,39 +91,40 @@ export const Navbar = () => {
 
         {/* ACOES DIREITA (DESKTOP) */}
         <div className={styles.actions}>
-          <button type="button" className={styles.langBtn} aria-label="Idioma: portugues do Brasil">
-            <Globe size={15} aria-hidden="true" />
-            <span>PT-BR</span>
-          </button>
-
           {!isLoggedIn ? (
-            <button 
-              type="button" 
+            <button
+              type="button"
               className={styles.loginBtn}
               onClick={signIn}
               disabled={loading}
-              title="Entrar com sua conta Google"
-            >
+              title="Entrar com sua conta Google">
               <User size={16} aria-hidden="true" />
               <span>{loading ? "Conectando..." : "Entrar com Google"}</span>
             </button>
           ) : (
             <div className={styles.userArea}>
-              <div className={styles.userBadge} title={`Conectado como: ${userName}`}>
+              <div
+                className={styles.userBadge}
+                title={`Conectado como: ${userName}`}>
                 {userAvatar ? (
-                  <img src={userAvatar} alt={userName} className={styles.userAvatar} />
+                  <img
+                    src={userAvatar}
+                    alt={userName}
+                    className={styles.userAvatar}
+                  />
                 ) : (
-                  <span className={styles.userAvatar}>{getInitials(userName)}</span>
+                  <span className={styles.userAvatar}>
+                    {getInitials(userName)}
+                  </span>
                 )}
                 <span className={styles.userName}>{userName}</span>
               </div>
-              <button 
-                type="button" 
-                className={styles.logoutBtn} 
+              <button
+                type="button"
+                className={styles.logoutBtn}
                 onClick={signOut}
                 disabled={loading}
-                title="Desconectar do GarimpaTrip"
-              >
+                title="Desconectar do GarimpaTrip">
                 <LogOut size={15} aria-hidden="true" />
                 <span>Sair</span>
               </button>
@@ -132,8 +138,7 @@ export const Navbar = () => {
           className={styles.menuToggle}
           onClick={() => setMenuOpen((prev) => !prev)}
           aria-expanded={menuOpen}
-          aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}
-        >
+          aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}>
           {menuOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
       </div>
@@ -143,7 +148,12 @@ export const Navbar = () => {
         <div className={styles.mobilePanel}>
           <nav className={styles.mobileNav} aria-label="Navegacao mobile">
             <div className={styles.modeIndicator}>
-              Status: <strong>{isLoggedIn ? `Logado como ${userName}` : "Visitante (Sem login)"}</strong>
+              Status:{" "}
+              <strong>
+                {isLoggedIn
+                  ? `Logado como ${userName}`
+                  : "Visitante (Sem login)"}
+              </strong>
             </div>
 
             {navLinks.map(({ href, label, icon: Icon, badge }) => (
@@ -151,8 +161,7 @@ export const Navbar = () => {
                 key={href}
                 href={href}
                 className={styles.mobileNavLink}
-                onClick={() => setMenuOpen(false)}
-              >
+                onClick={() => setMenuOpen(false)}>
                 <div className={styles.mobileLinkContent}>
                   {Icon && <Icon size={18} className={styles.linkIcon} />}
                   <span>{label}</span>
@@ -164,32 +173,27 @@ export const Navbar = () => {
             <div className={styles.mobileDivider} />
 
             <div className={styles.mobileActions}>
-              <button type="button" className={styles.langBtn}>
-                <Globe size={16} /> <span>PT-BR</span>
-              </button>
-
               {!isLoggedIn ? (
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className={styles.loginBtn}
                   onClick={() => {
                     signIn();
                     setMenuOpen(false);
                   }}
-                  disabled={loading}
-                >
-                  <User size={16} /> <span>{loading ? "Conectando..." : "Entrar com Google"}</span>
+                  disabled={loading}>
+                  <User size={16} />{" "}
+                  <span>{loading ? "Conectando..." : "Entrar com Google"}</span>
                 </button>
               ) : (
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className={styles.loginBtn}
                   onClick={() => {
                     signOut();
                     setMenuOpen(false);
                   }}
-                  disabled={loading}
-                >
+                  disabled={loading}>
                   <LogOut size={16} /> <span>Sair ({userName})</span>
                 </button>
               )}
