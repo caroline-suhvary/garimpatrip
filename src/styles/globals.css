@@ -1,0 +1,218 @@
+/* ==============================================================================
+   GARIMPATRIP - CSS PURO GLOBAL & DESIGN TOKENS CALIBRADOS
+   Fusão Fiel: Layout 1 (Areia / Kraft / Café Quente) + Layout 3 (Bento Grid Modular)
+   ============================================================================== */
+
+:root {
+  /* ==========================================
+     PALETA BASE (Layout 1 - Areia Quente / Kraft)
+     ========================================== */
+  --bg-sand-50: #faf7f2; /* Superfícies de cartões e inputs destacados */
+  --bg-sand-100: #eae4d9; /* Fundo Geral da Página (firme, aconchegante, não-branco) */
+  --bg-sand-200: #dfd8cc; /* Containers secundários, divisórias, hover de botões */
+  --bg-sand-300: #cfc7b9; /* Bordas estruturadas, linhas separadoras visíveis */
+  --bg-sand-400: #b8ae9d; /* Bordas com ênfase */
+
+  /* Tipografia Espresso Quente (alto contraste sem preto cirúrgico) */
+  --text-dark: #1a1816; /* Títulos e textos de alto impacto */
+  --text-muted: #5c564e; /* Textos secundários, legendas */
+  --text-light: #8a8276; /* Detalhes sutis, placeholders */
+
+  /* Amarelo Mostarda / Ouro Queimado (GarimpaTrip - Identidade) */
+  --brand-yellow: #e5a428;
+  --brand-yellow-hover: #d69318;
+  --brand-yellow-soft: #f7e7c4;
+  --brand-dark: #1a1816;
+  --brand-dark-hover: #2c2722;
+
+  /* ==========================================
+     CORES BENTO GRID MODULAR (Layout 3)
+     Cores pastéis encorpadas com alto contraste sobre o fundo areia
+     ========================================== */
+
+  /* ==============================================================
+     CORES DOS CARDS MODULARES (CALIBRADAS COM ALTO CONTRASTE)
+     ============================================================== */
+  /* 1. Transporte Principal */
+  --cat-flight-bg: #dceaf7;
+  --cat-flight-border: #99bfe4;
+  --cat-flight-text: #12539a;
+
+  /* 2. Hospedagem & Pousadas */
+  --cat-hotel-bg: #fbe1ca;
+  --cat-hotel-border: #ebb585;
+  --cat-hotel-text: #a34100;
+
+  /* 3. Passeios & Atrações */
+  --cat-tour-bg: #fcf2b8;
+  --cat-tour-border: #e4ce67;
+  --cat-tour-text: #8c6700;
+
+  /* 4. Deslocamento Local */
+  --cat-transport-bg: #dbefe0;
+  --cat-transport-border: #9bc9a4;
+  --cat-transport-text: #1a6623;
+
+  /* 5. Documentação & Saúde */
+  --cat-doc-bg: #e7defa;
+  --cat-doc-border: #b9a4e6;
+  --cat-doc-text: #4d22a6;
+
+  /* 6. Alimentação & Gastos */
+  --cat-food-bg: #fad9e4;
+  --cat-food-border: #e89bb4;
+  --cat-food-text: #9a1448;
+
+  /* 7. Câmbio & Dinheiro (Menta/Turquesa Vibrante - Não some no areia) */
+  --cat-currency-bg: #c8efe5;
+  --cat-currency-border: #72d2bc;
+  --cat-currency-text: #07614c;
+  --cat-cambio-bg: #c8efe5;
+  --cat-cambio-border: #72d2bc;
+  --cat-cambio-text: #07614c;
+  --cat-money-bg: #ffbb99;
+  --cat-money-border: #ff725f;
+  --cat-money-text: #07614c;
+
+  /* 8. Cronograma Diário */
+  --cat-schedule-bg: #eac4e1;
+  --cat-schedule-border: #e0a3d2;
+  --cat-schedule-text: #0d5985;
+  --cat-roteiro-bg: #e0f1fb;
+  --cat-roteiro-border: #9cd2f1;
+  --cat-roteiro-text: #0d5985;
+
+  /* 9. Orçamento Consolidado */
+  --cat-budget-bg: #e0c1a2;
+  --cat-budget-border: #cba782;
+  --cat-budget-text: #2b6808;
+  --cat-orcamento-bg: #e5f6d8;
+  --cat-orcamento-border: #a8de88;
+  --cat-orcamento-text: #2b6808;
+
+  /* 10. Checklist Final (Azul Petróleo Acinzentado / Ardósia - Destaque claro) */
+  --cat-checklist-bg: #dcf0a4;
+  --cat-checklist-border: #cce48b;
+  --cat-checklist-text: #243c56;
+  --cat-check-bg: #dce3ec;
+  --cat-check-border: #a4b5c8;
+  --cat-check-text: #243c56;
+  --cat-final-bg: #dce3ec;
+  --cat-final-border: #a4b5c8;
+  --cat-final-text: #243c56;
+
+  /* Raios e Sombras Estruturadas */
+  --radius-bento: 22px;
+  --radius-card: 16px;
+  --radius-pill: 9999px;
+
+  --border-bento: 1.5px solid rgba(26, 24, 22, 0.12);
+  --border-strong: 1.5px solid #1a1816;
+
+  --shadow-sm: 0 1px 3px rgba(26, 24, 22, 0.05);
+  --shadow-md: 0 4px 14px rgba(26, 24, 22, 0.08);
+  --shadow-lg: 0 12px 30px -4px rgba(26, 24, 22, 0.12);
+  --shadow-card-hover: 0 10px 24px -2px rgba(26, 24, 22, 0.12);
+}
+
+/* ==============================================================================
+   DARK MODE (Preparado via classe .dark ou data-theme="dark")
+   ============================================================================== */
+[data-theme="dark"],
+body.dark {
+  --bg-sand-50: #24211d;
+  --bg-sand-100: #181614; /* Fundo escuro quente (café escuro / carvão) */
+  --bg-sand-200: #2d2823;
+  --bg-sand-300: #3e3731;
+  --bg-sand-400: #554d45;
+
+  --text-dark: #f5efe6;
+  --text-muted: #b5aca0;
+  --text-light: #7d7468;
+
+  --brand-yellow: #f0b138;
+  --brand-yellow-hover: #ffaf1a;
+  --brand-yellow-soft: #3d3018;
+  --brand-dark: #faf7f2;
+  --brand-dark-hover: #ffffff;
+
+  --cat-flight-bg: #132b42;
+  --cat-flight-border: #23517a;
+  --cat-flight-text: #8ac4ff;
+
+  --cat-hotel-bg: #3d2511;
+  --cat-hotel-border: #6e441e;
+  --cat-hotel-text: #ffb373;
+
+  --cat-tour-bg: #383210;
+  --cat-tour-border: #695d1e;
+  --cat-tour-text: #ffe46b;
+
+  --cat-transport-bg: #14331c;
+  --cat-transport-border: #255c33;
+  --cat-transport-text: #8ce39d;
+
+  --cat-doc-bg: #291d42;
+  --cat-doc-border: #4a3475;
+  --cat-doc-text: #c8acff;
+
+  --cat-food-bg: #3b1724;
+  --cat-food-border: #6e2b43;
+  --cat-food-text: #ffa1c2;
+
+  --cat-currency-bg: #11362e;
+  --cat-currency-border: #1f6354;
+  --cat-currency-text: #7febd3;
+
+  --cat-schedule-bg: #123145;
+  --cat-schedule-border: #21577a;
+  --cat-schedule-text: #8ad2ff;
+
+  --cat-budget-bg: #1f3812;
+  --cat-budget-border: #3a6321;
+  --cat-budget-text: #abf279;
+
+  --cat-checklist-bg: #292520;
+  --cat-checklist-border: #474037;
+  --cat-checklist-text: #d6cebf;
+
+  --border-bento: 1.5px solid rgba(255, 255, 255, 0.1);
+  --border-strong: 1.5px solid rgba(255, 255, 255, 0.25);
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 12px 30px -4px rgba(0, 0, 0, 0.5);
+  --shadow-card-hover: 0 10px 24px -2px rgba(0, 0, 0, 0.5);
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
+  background-color: var(--bg-sand-100);
+  color: var(--text-dark);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  transition:
+    background-color 0.25s ease,
+    color 0.25s ease;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-family: inherit;
+}

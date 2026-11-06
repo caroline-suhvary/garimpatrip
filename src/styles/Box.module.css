@@ -1,0 +1,235 @@
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem;
+}
+
+.header {
+  margin-bottom: 2rem;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.35rem 0.85rem;
+  border-radius: var(--radius-pill);
+  background-color: var(--cat-tour-bg);
+  border: 1px solid var(--cat-tour-border);
+  color: var(--cat-tour-text);
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.title {
+  font-size: 2.2rem;
+  font-weight: 900;
+  color: var(--brand-dark);
+  margin-top: 0.5rem;
+}
+
+.subtitle {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  max-width: 650px;
+  margin-top: 0.25rem;
+}
+
+.columnsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+
+.column {
+  background-color: var(--bg-sand-50);
+  border: 1px solid var(--bg-sand-300);
+  border-radius: var(--radius-bento);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.columnHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid var(--bg-sand-200);
+}
+
+.colTitle {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--brand-dark);
+}
+
+.countBadge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-pill);
+  background-color: var(--bg-sand-300);
+  color: var(--text-dark);
+}
+
+.cardItem {
+  background-color: #FFFFFF;
+  border: 1px solid var(--bg-sand-300);
+  border-radius: var(--radius-card);
+  padding: 1.25rem;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.cardItem:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.sourceBadge {
+  align-self: flex-start;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-pill);
+  text-transform: uppercase;
+}
+
+.badgePartner {
+  background-color: #E0F2FE;
+  color: #0369A1;
+}
+
+.badgeWeb {
+  background-color: #FEF3C7;
+  color: #B45309;
+}
+
+.itemTitle {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--brand-dark);
+}
+
+.itemDesc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.itemFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--bg-sand-200);
+}
+
+.price {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #059669;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btnTransfer {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background-color: var(--brand-dark);
+  color: #FFFFFF;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.btnRemove {
+  padding: 0.4rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background-color: #FEE2E2;
+  color: #DC2626;
+  border-radius: 8px;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.manualForm {
+  display: grid;
+  grid-template-columns: 2fr 1fr 0.8fr 1.5fr auto;
+  gap: 0.75rem;
+  align-items: end;
+  background-color: #FFFFFF;
+  border: 1px solid var(--bg-sand-300);
+  border-radius: var(--radius-card);
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.badgeManual {
+  background-color: var(--bg-sand-200);
+  color: var(--text-dark);
+}
+
+.empty {
+  font-size: 0.8rem;
+  color: var(--text-light);
+  text-align: center;
+  padding: 1.5rem 0.5rem;
+  border: 1px dashed var(--bg-sand-300);
+  border-radius: var(--radius-card);
+}
+
+.linkOut {
+  font-size: 0.75rem;
+  color: #B45309;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-weight: 700;
+}
+
+.transferPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background-color: var(--bg-sand-50);
+  border: 1px solid var(--bg-sand-300);
+  border-radius: 10px;
+  padding: 0.75rem;
+}
+
+@media (max-width: 960px) {
+  .columnsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .manualForm {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .manualForm button {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 520px) {
+  .manualForm {
+    grid-template-columns: 1fr;
+  }
+}

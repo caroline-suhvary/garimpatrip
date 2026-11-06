@@ -1,0 +1,435 @@
+.main {
+  min-height: 100vh;
+  background-color: var(--bg-sand-100);
+}
+
+.heroSection {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem 3.5rem 1.5rem;
+}
+
+.heroBanner {
+  position: relative;
+  border-radius: var(--radius-bento);
+  background: linear-gradient(140deg, #E8A82A 0%, #D89518 100%);
+  padding: 3.5rem 3rem;
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  border: 1.5px solid rgba(26, 24, 22, 0.12);
+}
+
+.heroTag {
+  display: inline-block;
+  padding: 0.4rem 1.1rem;
+  border-radius: var(--radius-pill);
+  background-color: rgba(26, 24, 22, 0.12);
+  color: #1A1816;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 1.35rem;
+  border: 1px solid rgba(26, 24, 22, 0.15);
+}
+
+.heroTitle {
+  font-size: 3.1rem;
+  font-weight: 900;
+  color: #1A1816;
+  line-height: 1.12;
+  letter-spacing: -1.2px;
+  max-width: 760px;
+  margin-bottom: 1.15rem;
+}
+
+.heroSubtitle {
+  font-size: 1.18rem;
+  font-weight: 500;
+  color: rgba(26, 24, 22, 0.88);
+  max-width: 660px;
+  line-height: 1.5;
+}
+
+/* Barra de Busca Flutuante com Alto Contraste */
+.searchBar {
+  margin-top: 2.75rem;
+  background-color: var(--bg-sand-50);
+  border-radius: 18px;
+  padding: 1.25rem;
+  box-shadow: var(--shadow-lg);
+  border: 1.5px solid var(--bg-sand-300);
+}
+
+.searchForm {
+  display: grid;
+  grid-template-columns: 1.2fr 1.2fr 1fr 180px;
+  gap: 1rem;
+  align-items: center;
+}
+
+.inputField {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 1.1rem;
+  background-color: #FFFFFF;
+  border-radius: 12px;
+  border: 1.5px solid var(--bg-sand-300);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+[data-theme="dark"] .inputField,
+body.dark .inputField {
+  background-color: var(--bg-sand-200);
+  border-color: var(--bg-sand-400);
+}
+
+.inputField:focus-within {
+  border-color: var(--brand-dark);
+  box-shadow: 0 0 0 3px rgba(229, 164, 40, 0.25);
+}
+
+.inputContent {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.inputLabel {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.textInput {
+  border: none;
+  background: transparent;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  outline: none;
+}
+
+.searchBtn {
+  height: 54px;
+  background-color: #1A1816;
+  color: #FFFFFF;
+  font-size: 1rem;
+  font-weight: 800;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+  border: 1.5px solid #1A1816;
+}
+
+.searchBtn:hover {
+  background-color: #332D27;
+  transform: translateY(-1px);
+}
+
+/* ==============================================================================
+   BENTO GRID DAS 10 ÁREAS (Layout 3 Fiel)
+   ============================================================================== */
+.bentoSection {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 1.5rem 1.5rem 5.5rem 1.5rem;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 2.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 1.5px solid var(--bg-sand-300);
+}
+
+.sectionSub {
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+}
+
+.sectionTitle {
+  font-size: 2rem;
+  font-weight: 900;
+  color: var(--text-dark);
+  letter-spacing: -0.6px;
+  margin-top: 0.35rem;
+}
+
+.sectionDesc {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  max-width: 440px;
+  line-height: 1.45;
+}
+
+.bentoGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.6rem;
+}
+
+.bentoCard {
+  border-radius: var(--radius-bento);
+  padding: 1.85rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 225px;
+  border: var(--border-bento);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.bentoCard:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-card-hover);
+  border-color: rgba(26, 24, 22, 0.28);
+}
+
+.cardTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.iconBox {
+  width: 50px;
+  height: 50px;
+  border-radius: 14px;
+  background-color: rgba(255, 255, 255, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="dark"] .iconBox,
+body.dark .iconBox {
+  background-color: rgba(0, 0, 0, 0.25);
+}
+
+.cardBadge {
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.3rem 0.75rem;
+  border-radius: var(--radius-pill);
+  background-color: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  letter-spacing: 0.02em;
+}
+
+[data-theme="dark"] .cardBadge,
+body.dark .cardBadge {
+  background-color: rgba(0, 0, 0, 0.35);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.cardTitle {
+  font-size: 1.22rem;
+  font-weight: 800;
+  color: var(--text-dark);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cardDesc {
+  font-size: 0.86rem;
+  font-weight: 500;
+  margin-top: 0.35rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* ==============================================================================
+   SEÇÃO DE ETAPAS (Como o GarimpaTrip Funciona)
+   ============================================================================== */
+.stepsSection {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 1.5rem 5rem 1.5rem;
+}
+
+.stepsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+
+.stepCard {
+  background-color: var(--bg-sand-50);
+  border-radius: var(--radius-card);
+  padding: 1.75rem;
+  border: 1.5px solid var(--bg-sand-300);
+  box-shadow: var(--shadow-sm);
+}
+
+.stepNumber {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-pill);
+  background-color: var(--brand-yellow);
+  color: #1A1816;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.stepTitle {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text-dark);
+  margin-bottom: 0.5rem;
+}
+
+.stepDesc {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+/* ==============================================================================
+   RESPONSIVIDADE GERAL DO LAYOUT DA HOME (HERO, BUSCA E BENTO GRID)
+   ============================================================================== */
+@media (max-width: 1024px) {
+  .bentoGrid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .searchForm {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .heroBanner {
+    padding: 2.25rem 1.5rem !important;
+  }
+  .heroTitle {
+    font-size: 2.1rem !important;
+    line-height: 1.2 !important;
+  }
+  .searchBar {
+    padding: 1rem !important;
+  }
+  .searchForm {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+  }
+  .bentoGrid {
+    grid-template-columns: 1fr !important;
+  }
+  .sectionHeader {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.75rem !important;
+  }
+}
+
+/* ==============================================================================
+   SEÇÃO INFERIOR: COMO O GARIMPATRIP FUNCIONA (SEARCH, LOOK & REDIRECT)
+   ============================================================================== */
+.stepsSection,
+.howSection,
+.howItWorksSection,
+.workflowSection,
+.infoSection {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 1rem 1.5rem 5rem 1.5rem;
+}
+
+.stepsGrid,
+.howGrid,
+.howItWorksGrid,
+.workflowGrid,
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+@media (max-width: 900px) {
+  .stepsGrid,
+  .howGrid,
+  .howItWorksGrid,
+  .workflowGrid,
+  .infoGrid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+.stepCard,
+.howCard,
+.howItWorksCard,
+.workflowCard,
+.infoCard {
+  background-color: var(--bg-sand-50, #FAF7F2);
+  border-radius: var(--radius-card, 16px);
+  padding: 2rem 1.75rem;
+  border: 1.5px solid var(--bg-sand-300, #CFC7B9);
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(26, 24, 22, 0.05));
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stepCard:hover,
+.howCard:hover,
+.howItWorksCard:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md, 0 4px 14px rgba(26, 24, 22, 0.08));
+}
+
+.stepNumber,
+.howNumber,
+.howItWorksNumber,
+.stepBadge,
+.numberBadge {
+  width: 36px;
+  height: 36px;
+  border-radius: 9999px;
+  background-color: var(--brand-yellow, #E5A428);
+  color: #1A1816;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.stepTitle,
+.howTitle,
+.howItWorksTitle,
+.cardTitle {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--text-dark, #1A1816);
+  margin-bottom: 0.6rem;
+}
+
+.stepDesc,
+.howDesc,
+.howItWorksDesc,
+.cardDesc {
+  font-size: 0.9rem;
+  color: var(--text-muted, #5C564E);
+  line-height: 1.5;
+}

@@ -1,0 +1,177 @@
+// Tipos compartilhados entre telas, rotas de API e banco de dados.
+
+export type CategoryId =
+  | 'flight'
+  | 'hotel'
+  | 'transport'
+  | 'tour'
+  | 'food'
+  | 'doc'
+  | 'money'
+  | 'schedule'
+  | 'budget'
+  | 'checklist';
+
+export type DiscoveryCategory = 'flight' | 'hotel' | 'tour' | 'transport' | 'doc' | 'food' | 'web_idea';
+export type SourceType = 'api_partner' | 'web_result' | 'manual';
+export type TripStatus = 'planejamento' | 'reservado' | 'concluido' | 'arquivado';
+export type PackageStatus = 'planejado' | 'reservado' | 'pago';
+
+export interface Profile {
+  id: string;
+  email: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  max_active_alerts: number;
+  max_trips: number;
+}
+
+export interface Trip {
+  id: string;
+  user_id: string;
+  title: string;
+  origin_city: string;
+  origin_iata: string | null;
+  destination_city: string;
+  destination_iata: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  is_flexible_dates: boolean;
+  travelers_count: number;
+  budget_limit: number;
+  status: TripStatus;
+  created_at: string;
+}
+
+export interface DiscoveryItem {
+  id: string;
+  trip_id: string;
+  user_id: string;
+  title: string;
+  category: DiscoveryCategory;
+  description?: string | null;
+  source_type: SourceType;
+  external_url?: string | null;
+  estimated_price?: number | null;
+  currency?: string | null;
+  raw_payload?: Record<string, unknown>;
+  is_transferred_to_package?: boolean;
+  created_at: string;
+}
+
+export interface PackageItem {
+  id: string;
+  trip_id: string;
+  category_id: number;
+  title: string;
+  status: PackageStatus;
+  estimated_cost: number | null;
+  final_cost: number | null;
+  currency: string | null;
+  booking_reference: string | null;
+  external_url: string | null;
+  notes: string | null;
+  meta_details?: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface ScheduleItem {
+  id: string;
+  trip_id: string;
+  day_number: number;
+  activity_date: string | null;
+  start_time: string | null;
+  title: string;
+  location_name: string | null;
+  notes: string | null;
+  is_rainy_day_alternative: boolean;
+}
+
+export interface PackageCategory {
+  id: number;
+  code: CategoryId;
+  title: string;
+  description: string;
+  badge: string;
+}
+
+export interface MonitoredRoute {
+  id: string;
+  origin_iata: string;
+  destination_iata: string;
+  route_name: string;
+  is_base_route: boolean;
+  is_active: boolean;
+  subscribers_count: number;
+  last_checked_at: string | null;
+}
+
+export interface PriceRecord {
+  flight_date: string;
+  price: number;
+  airline: string | null;
+  stops: number | null;
+  recorded_at: string;
+}
+
+export interface CalendarDay {
+  date_day: string;
+  holiday_name: string | null;
+  holiday_type: string | null;
+  is_school_vacation: boolean;
+  period_classification: string | null;
+}
+
+export interface UserAlert {
+  id: string;
+  route_id: string;
+  target_price: number;
+  preferred_month: string | null;
+  is_active: boolean;
+  monitored_routes?: Pick<MonitoredRoute, 'origin_iata' | 'destination_iata' | 'route_name'> | null;
+}
+
+/** Resultado padronizado que todas as rotas /api/discover/* devolvem. */
+export interface SearchResult {
+  id: string;
+  category: DiscoveryCategory;
+  source_type: SourceType;
+  source: string;
+  title: string;
+  description: string;
+  price: number | null;
+  currency: string;
+  url: string | null;
+  raw: Record<string, unknown>;
+}
+
+export interface SearchResponse {
+  degraded?: boolean;
+  fallbackUrls?: { google?: string; brave?: string };
+  results: SearchResult[];
+  /** Mensagem amigável quando a chave não está configurada ou a API falhou. */
+  notice?: string;
+  /** Link opcional para continuar a busca no site do parceiro. */
+  moreUrl?: string;
+}
+
+
+export interface WeatherData {
+  destination: string;
+  temperature: number;
+  apparentTemperature: number;
+  humidity: number;
+  precipitation: number;
+  weatherCode: number;
+  conditionLabel: string;
+  tempMax: number;
+  tempMin: number;
+  packingTip: string;
+}
+
+export interface CitySummary {
+  title: string;
+  extract: string;
+  thumbnailUrl?: string;
+  pageUrl?: string;
+}

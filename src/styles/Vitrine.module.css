@@ -1,0 +1,472 @@
+/* Estilos da Vitrine de Degustação do GarimpaTrip */
+.wrapper {
+  width: min(100%, 1280px);
+  margin: 0 auto;
+  padding: 36px clamp(16px, 3.5vw, 40px) 72px;
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+}
+
+/* BANNER ONBOARDING */
+.onboardingBanner {
+  background: #fdfbf7;
+  border: 1px solid rgba(91, 73, 49, 0.18);
+  border-radius: 20px;
+  padding: clamp(24px, 3.5vw, 40px);
+  box-shadow: 0 4px 16px rgba(45, 36, 25, 0.05);
+}
+
+.onboardingTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f1e2c4;
+  color: #8c4a0d;
+  font-size: 0.8rem;
+  font-weight: 800;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(140, 74, 13, 0.2);
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pageTitle {
+  font-size: clamp(1.8rem, 3vw, 2.4rem);
+  font-weight: 900;
+  color: #27231e;
+  letter-spacing: -0.04em;
+  margin: 0 0 10px;
+}
+
+.pageSubtitle {
+  font-size: 1.05rem;
+  color: #5a4f40;
+  max-width: 820px;
+  line-height: 1.55;
+  margin: 0 0 28px;
+}
+
+/* GRID DOS 3 PASSOS */
+.tourGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.tourCard {
+  background: #ede6d9;
+  border: 1px solid rgba(91, 73, 49, 0.14);
+  border-radius: 14px;
+  padding: 18px 20px;
+  position: relative;
+}
+
+.tourNumber {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #dda027;
+  color: #27231e;
+  font-weight: 900;
+  font-size: 0.88rem;
+  margin-bottom: 10px;
+}
+
+.tourCard h3 {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #27231e;
+  margin: 0 0 6px;
+}
+
+.tourCard p {
+  font-size: 0.88rem;
+  color: #534839;
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* SELETOR DE DESTINO */
+.selectorSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.selectorLabel {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #635745;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.pillContainer {
+  display: inline-flex;
+  background: #ded5c3;
+  padding: 5px;
+  border-radius: 999px;
+  border: 1px solid rgba(91, 73, 49, 0.18);
+  gap: 6px;
+}
+
+.pillBtn {
+  padding: 10px 22px;
+  border: none;
+  background: transparent;
+  color: #4b4132;
+  font-size: 0.92rem;
+  font-weight: 800;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 160ms ease;
+  white-space: nowrap;
+}
+
+.pillActive {
+  background: #27231e;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+/* DESTINATION HERO */
+.destinationHero {
+  display: grid;
+  grid-template-columns: 1.6fr 1.1fr;
+  gap: 24px;
+  background: #fdfbf7;
+  border: 1px solid rgba(91, 73, 49, 0.16);
+  border-radius: 18px;
+  padding: clamp(20px, 3vw, 32px);
+  align-items: center;
+}
+
+.destBadge {
+  display: inline-block;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #925212;
+  background: #faeed4;
+  padding: 4px 10px;
+  border-radius: 6px;
+  margin-bottom: 10px;
+}
+
+.destTitle {
+  font-size: clamp(1.8rem, 2.6vw, 2.3rem);
+  font-weight: 900;
+  color: #27231e;
+  margin: 0 0 8px;
+}
+
+.destSummary {
+  font-size: 0.98rem;
+  color: #55493b;
+  line-height: 1.5;
+  margin: 0 0 18px;
+}
+
+.datesBox {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: #eee7da;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  color: #3b3327;
+  border: 1px solid rgba(91, 73, 49, 0.12);
+}
+
+/* CARD DO CLIMA (OPEN-METEO) */
+.weatherCard {
+  background: #eef4f7;
+  border: 1px solid rgba(43, 120, 184, 0.25);
+  border-radius: 14px;
+  padding: 20px;
+}
+
+.weatherHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.weatherIconBox {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #ffffff;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.weatherSource {
+  font-size: 0.74rem;
+  color: #4b6b82;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+
+.weatherTemp {
+  font-size: 1.45rem;
+  font-weight: 900;
+  color: #1a3850;
+  margin: 0;
+}
+
+.weatherList {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 0.86rem;
+  color: #2d4557;
+}
+
+.weatherAlert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  color: #1a4d70;
+  font-weight: 750;
+}
+
+/* AS 10 ÁREAS */
+.areasSection {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.sectionHeader h2 {
+  font-size: 1.6rem;
+  font-weight: 900;
+  color: #27231e;
+  margin: 0 0 4px;
+}
+
+.sectionHeader p {
+  color: #635747;
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.areasGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.areaCard {
+  background: #fdfbf7;
+  border: 1px solid rgba(91, 73, 49, 0.14);
+  border-radius: 14px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 2px 6px rgba(45, 36, 25, 0.03);
+}
+
+.areaHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.areaNumberIcon {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.areaId {
+  font-size: 0.72rem;
+  font-weight: 900;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: #e8decc;
+  color: #4b4031;
+  display: grid;
+  place-items: center;
+}
+
+.areaIcon {
+  color: #9c631e;
+}
+
+.areaCost {
+  font-size: 0.92rem;
+  font-weight: 850;
+  color: #8c4a0d;
+}
+
+.areaName {
+  font-size: 1.02rem;
+  font-weight: 800;
+  color: #27231e;
+  margin: 0;
+}
+
+.areaNote {
+  font-size: 0.86rem;
+  color: #55493b;
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* INTELIGÊNCIA CLIMÁTICA CRUZADA */
+.intelligenceSection {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.intelCard {
+  background: #f7f3eb;
+  border: 1px solid rgba(91, 73, 49, 0.16);
+  border-radius: 16px;
+  padding: 22px;
+}
+
+.intelHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.intelIcon {
+  color: #9c631e;
+}
+
+.intelHeader h3 {
+  font-size: 1.1rem;
+  font-weight: 850;
+  color: #27231e;
+  margin: 0;
+}
+
+.intelBody p {
+  font-size: 0.9rem;
+  color: #4a4032;
+  line-height: 1.5;
+  margin: 0 0 10px;
+}
+
+.intelHighlight {
+  background: #ffffff;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border-left: 3px solid #dda027;
+  font-weight: 650;
+}
+
+.intelTip, .packingNotice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #faeed4;
+  color: #8a4e10;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.84rem;
+  font-weight: 700;
+  margin-top: 10px;
+}
+
+/* CTA FINAL */
+.ctaFooter {
+  margin-top: 10px;
+}
+
+.ctaCard {
+  background: #27231e;
+  color: #ffffff;
+  border-radius: 20px;
+  padding: clamp(28px, 4vw, 44px);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.ctaIcon {
+  color: #dda027;
+}
+
+.ctaCard h2 {
+  font-size: clamp(1.6rem, 2.6vw, 2.2rem);
+  font-weight: 900;
+  margin: 0;
+}
+
+.ctaCard p {
+  color: #d1c8bb;
+  font-size: 1.05rem;
+  max-width: 620px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.ctaActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.ctaPrimary, .ctaSecondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 999px;
+  font-size: 0.94rem;
+  font-weight: 800;
+  text-decoration: none;
+  transition: transform 150ms ease;
+}
+
+.ctaPrimary {
+  background: #dda027;
+  color: #27231e;
+}
+
+.ctaSecondary {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.ctaPrimary:hover, .ctaSecondary:hover {
+  transform: translateY(-2px);
+}
+
+/* RESPONSIVIDADE */
+@media (max-width: 900px) {
+  .destinationHero { grid-template-columns: 1fr; }
+  .intelligenceSection { grid-template-columns: 1fr; }
+  .pillContainer { width: 100%; flex-direction: column; border-radius: 14px; }
+  .pillBtn { border-radius: 10px; text-align: center; }
+}

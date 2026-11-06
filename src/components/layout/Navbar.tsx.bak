@@ -1,0 +1,82 @@
+"use client";
+
+import React, { useState } from "react";
+import Link from "next/link";
+import { Compass, Sparkles, User, Globe, TrendingDown, Menu, X, BriefcaseBusiness } from "lucide-react";
+import styles from "@/styles/Navbar.module.css";
+
+const links = [
+  { href: "/discover", label: "Descobrir destinos" },
+  { href: "/box", label: "Caixa de descobertas", icon: Sparkles },
+  { href: "/package", label: "Meu pacote", icon: BriefcaseBusiness },
+  { href: "/radar", label: "Radar de preços", icon: TrendingDown },
+];
+
+function NavigationLinks({ onNavigate }: { onNavigate?: () => void }) {
+  return (
+    <>
+      {links.map(({ href, label, icon: Icon }) => (
+        <Link key={href} href={href} className={styles.navLink} onClick={onNavigate}>
+          {Icon && <Icon className={styles.linkIcon} size={17} aria-hidden="true" />}
+          <span>{label}</span>
+        </Link>
+      ))}
+    </>
+  );
+}
+
+function AccountActions({ mobile = false }: { mobile?: boolean }) {
+  return (
+    <div className={mobile ? styles.mobileActions : styles.actions}>
+      <button type="button" className={styles.langBtn} aria-label="Idioma: português do Brasil">
+        <Globe size={16} aria-hidden="true" /> <span>PT-BR</span>
+      </button>
+      <button type="button" className={styles.loginBtn}>
+        <User size={17} aria-hidden="true" /> <span>Entrar com Google</span>
+      </button>
+    </div>
+  );
+}
+
+export const Navbar = () => {
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  return (
+    <header className={styles.header}>
+      <div className={styles.container}>
+        <Link href="/" className={styles.logo} aria-label="GarimpaTrip, início" onClick={() => setMenuOpen(false)}>
+          <span className={styles.logoIcon}>
+            <Compass size={22} strokeWidth={2.5} aria-hidden="true" />
+          </span>
+          <span className={styles.logoText}>
+            Garimpa<span className={styles.logoHighlight}>Trip</span>
+          </span>
+        </Link>
+
+        <nav className={styles.desktopNav} aria-label="Navegação principal">
+          <NavigationLinks />
+        </nav>
+
+        <AccountActions />
+
+        <button
+          type="button"
+          className={styles.menuToggle}
+          aria-label={menuOpen ? "Fechar menu" : "Abrir menu"}
+          aria-expanded={menuOpen}
+          aria-controls="mobile-navigation"
+          onClick={() => setMenuOpen((open) => !open)}
+        >
+          {menuOpen ? <X size={23} aria-hidden="true" /> : <Menu size={23} aria-hidden="true" />}
+        </button>
+      </div>
+
+      <div id="mobile-navigation" className={`${styles.mobilePanel} ${menuOpen ? styles.mobilePanelOpen : ""}`}>
+        <nav className={styles.mobileNav} aria-label="Navegação móvel">
+          <NavigationLinks onNavigate={() => setMenuOpen(false)} />
+        </nav>
+        <AccountActions mobile />
+      </div>
+    </header>
+  );
+};

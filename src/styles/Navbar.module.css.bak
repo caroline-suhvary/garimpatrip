@@ -1,0 +1,188 @@
+/* Navbar GarimpaTrip: horizontal em desktop (sem hambúrguer), retrátil em mobile */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  width: 100%;
+  background: rgba(234, 228, 217, 0.97);
+  border-bottom: 1px solid rgba(91, 73, 49, 0.18);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.container {
+  width: min(100%, 1440px);
+  min-height: 76px;
+  margin: 0 auto;
+  padding: 0 clamp(18px, 3.2vw, 48px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: clamp(16px, 2vw, 30px);
+}
+
+.logo {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #26231e;
+  text-decoration: none;
+}
+
+.logoIcon {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  color: #26231e;
+  background: #e8ad35;
+  border: 1px solid rgba(38, 35, 30, 0.16);
+  border-radius: 13px;
+}
+
+.logoText {
+  white-space: nowrap;
+  font-size: 1.28rem;
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: -0.055em;
+}
+
+.logoHighlight { color: #a45c18; }
+
+.desktopNav {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: clamp(12px, 1.65vw, 26px);
+}
+
+.navLink {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  color: #51483b;
+  text-decoration: none;
+  white-space: nowrap;
+  font-size: 0.88rem;
+  font-weight: 750;
+  transition: color 160ms ease, background-color 160ms ease;
+}
+
+.navLink:hover { color: #9a5816; }
+.linkIcon { flex: 0 0 auto; color: #a66b20; }
+
+.actions, .mobileActions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.langBtn, .loginBtn {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 800;
+  white-space: nowrap;
+  transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease;
+}
+
+.langBtn {
+  padding: 0 13px;
+  color: #40382d;
+  background: #e2d8c7;
+  border-color: rgba(91, 73, 49, 0.12);
+}
+
+.loginBtn {
+  padding: 0 17px;
+  color: #fff;
+  background: #27231e;
+}
+
+.langBtn:hover, .loginBtn:hover { transform: translateY(-1px); }
+.loginBtn:hover { background: #463a2b; }
+
+.menuToggle {
+  display: none;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  color: #28231d;
+  background: #e2d8c7;
+  border: 1px solid rgba(91, 73, 49, 0.2);
+  border-radius: 13px;
+  cursor: pointer;
+}
+
+.mobilePanel { display: none; }
+
+.logo:focus-visible, .navLink:focus-visible, .langBtn:focus-visible,
+.loginBtn:focus-visible, .menuToggle:focus-visible {
+  outline: 3px solid #a45c18;
+  outline-offset: 3px;
+}
+
+@media (max-width: 1160px) {
+  .container { min-height: 70px; }
+  .desktopNav, .actions { display: none; }
+  .menuToggle { display: inline-flex; }
+  .mobilePanel {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    display: none;
+    padding: 10px clamp(18px, 4vw, 34px) 22px;
+    background: #eae4d9;
+    border-bottom: 1px solid rgba(91, 73, 49, 0.2);
+    box-shadow: 0 18px 28px rgba(39, 35, 29, 0.12);
+  }
+  .mobilePanelOpen { display: block; }
+  .mobileNav { display: grid; gap: 4px; }
+  .mobileNav .navLink {
+    min-height: 48px;
+    justify-content: flex-start;
+    padding: 0 12px;
+    border-radius: 12px;
+  }
+  .mobileNav .navLink:hover { background: rgba(255, 255, 255, 0.5); }
+  .mobileActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 14px 8px 0;
+    margin-top: 8px;
+    border-top: 1px solid rgba(91, 73, 49, 0.17);
+  }
+}
+
+@media (max-width: 420px) {
+  .container { min-height: 64px; padding-inline: 14px; }
+  .logoIcon { width: 36px; height: 36px; }
+  .logoText { font-size: 1.16rem; }
+  .mobilePanel { padding-inline: 14px; }
+  .mobileActions { align-items: stretch; }
+  .mobileActions .langBtn { flex: 0 0 auto; }
+  .mobileActions .loginBtn { flex: 1 1 auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navLink, .langBtn, .loginBtn { transition: none; }
+}
