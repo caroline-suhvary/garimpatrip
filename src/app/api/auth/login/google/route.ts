@@ -1,36 +1,43 @@
 import { NextResponse } from 'next/server';
-
-function safeNext(next: string | null): string {
-  if (!next || !next.startsWith('/') || next.startsWith('//') || next.startsWith('/\\')) return '/';
-  return next;
-}
+import crypto from 'crypto';
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
-  const next = safeNext(searchParams.get('next'));
+  const next = searchParams.get('next') || '/';
 
   const clientId = process.env.GOOGLE_CLIENT_ID;
   if (!clientId) {
-    console.error('GOOGLE_CLIENT_ID não configurado no servidor.');
-    return NextResponse.redirect(`${origin}/?login=missing_google_client_id`);
+    return NextResponse.json(
+      { error: 'GOOGLE_CLIENT_ID não configurado no servidor (.env.local / Vercel).' },
+      { status: 500 }
+    );
   }
 
-  const isLocal = origin.includes('localhost') || origin.includes('127.0.0.1');
-  const baseUrl = isLocal ? origin : (process.env.NEXT_PUBLIC_SITE_URL || origin);
-  const redirectUri = `${baseUrl.replace(/\/+$/, '')}/api/auth/callback/google`;
+  const stateData = {
+    csrf: crypto.randomBytes(16).toString('hex'),
+    next: next.startsWith('/') && !next.startsWith('//') ? next : '/',
+  };
+  const state = Buffer.from(JSON.stringify(stateData)).toString('base64url');
 
-  const stateObj = { next, nonce: Math.random().toString(36).substring(2) };
-  const state = Buffer.from(JSON.stringify(stateObj)).toString('base64url');
+  const redirectUri = `${origin}/api/auth/callback/google`;
 
-  const params = new URLSearchParams({
-    client_id: clientId,
-    redirect_uri: redirectUri,
-    response_type: 'code',
-    scope: 'openid email profile',
-    access_type: 'offline',
-    prompt: 'select_account',
-    state,
+  const googleAuthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+  googleAuthUrl.searchParams.set('client_id', clientId);
+  googleAuthUrl.searchParams.set('redirect_uri', redirectUri);
+  googleAuthUrl.searchParams.set('response_type', 'code');
+  googleAuthUrl.searchParams.set('scope', 'openid email profile');
+  googleAuthUrl.searchParams.set('state', state);
+  googleAuthUrl.searchParams.set('access_type', 'offline');
+  googleAuthUrl.searchParams.set('prompt', 'select_account');
+
+  const res = NextResponse.redirect(googleAuthUrl.toString());
+  res.cookies.set('oauth_state', stateData.csrf, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 600,
+    path: '/',
   });
 
-  return NextResponse.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
+  return res;
 }

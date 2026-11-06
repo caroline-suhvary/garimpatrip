@@ -78,23 +78,10 @@ export const Navbar = () => {
     };
   }, []);
 
-  const handleLoginGoogle = async () => {
-    try {
-      setLoading(true);
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
-        },
-      });
-      if (error) {
-        alert("Erro ao conectar com Google: " + error.message);
-      }
-    } catch (err: any) {
-      alert("Falha no login: " + (err?.message || err));
-    } finally {
-      setLoading(false);
-    }
+  const handleLoginGoogle = () => {
+    setLoading(true);
+    const next = typeof window !== "undefined" ? window.location.pathname + window.location.search : "/";
+    window.location.href = `/api/auth/login/google?next=${encodeURIComponent(next)}`;
   };
 
   const handleLogout = async () => {
