@@ -1,12 +1,10 @@
-// Proxy do Next.js (antigo "middleware"): renova a sessão do Supabase a cada visita,
-// para o login com Google continuar válido sem o usuário perceber.
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 export async function proxy(request: NextRequest) {
+  let response = NextResponse.next({ request });
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  let response = NextResponse.next({ request });
   if (!url || !key) return response;
 
   const supabase = createServerClient(url, key, {

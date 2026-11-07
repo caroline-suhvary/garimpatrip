@@ -15,14 +15,26 @@ import styles from '@/styles/Discover.module.css';
 const DEFAULT_ORIGIN = 'São Paulo (GRU)';
 const DEFAULT_DESTINATION = 'Salvador (SSA)';
 
-export function DiscoverClient() {
+interface DiscoverClientProps {
+  initialOrigin?: string;
+  initialDestination?: string;
+  initialBudget?: string;
+  initialMonth?: string;
+}
+
+export function DiscoverClient({
+  initialOrigin,
+  initialDestination,
+  initialBudget,
+  initialMonth,
+}: DiscoverClientProps = {}) {
   const { supabase, user, signIn } = useAuth();
   const { trips, selectedTrip, selectedId, setSelectedId, reload, loading: tripsLoading } = useTrips(supabase, user);
 
-  const [origin, setOrigin] = useState(DEFAULT_ORIGIN);
-  const [destination, setDestination] = useState(DEFAULT_DESTINATION);
-  const [month, setMonth] = useState('2026-12');
-  const [budget, setBudget] = useState('3500');
+  const [origin, setOrigin] = useState(initialOrigin || DEFAULT_ORIGIN);
+  const [destination, setDestination] = useState(initialDestination || DEFAULT_DESTINATION);
+  const [month, setMonth] = useState(initialMonth || '2026-12');
+  const [budget, setBudget] = useState(initialBudget || '3500');
 
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
@@ -56,7 +68,6 @@ export function DiscoverClient() {
     runSearch(origin, destination, month);
   };
 
-  // Garante que o profile existe antes de dar insert em trips
   const ensureProfile = async () => {
     if (!supabase || !user) return;
     try {
@@ -102,25 +113,27 @@ export function DiscoverClient() {
       if (error.message.includes('foreign key constraint')) {
         return setMessage({ 
           type: 'error', 
-          text: 'Sua conta precisa ser sincronizada com o banco. Execute sql/03_fix_profiles_and_trips.sql no Supabase.' 
+          text: 'Sua conta precisa ser sincronizada com o banco. Por favor, execute o script sql/03_fix_profiles_and_trips.sql no Supabase.' 
         });
       }
       return setMessage({ type: 'error', text: error.message });
     }
 
-    await reload();
-    if (data?.id) setSelectedId(data.id);
-    setMessage({ type: 'ok', text: `Viagem para ${destCity} criada! Agora é só guardar os achados.` });
+    if (data?.id) {
+      await reload();
+      setSelectedId(data.id);
+      setMessage({ type: 'ok', text: `Viagem para ${destCity} criada com sucesso e selecionada!` });
+    }
   };
 
-  const saveResult = async (r: SearchResult) => {
+  const saveToBox = async (r: SearchResult) => {
     if (!supabase || !user) return signIn();
-    if (!selectedTrip) return setMessage({ type: 'error', text: 'Crie ou escolha uma viagem antes de guardar itens.' });
-    
-    await ensureProfile();
+    if (!selectedId) {
+      return setMessage({ type: 'error', text: 'Crie ou selecione uma viagem antes de salvar itens na Caixa.' });
+    }
 
-    const { error: err } = await supabase.from('discoveries').insert({
-      trip_id: selectedTrip.id,
+    const { error: err } = await supabase.from('discovery_items').insert({
+      trip_id: selectedId,
       user_id: user.id,
       title: r.title.slice(0, 200),
       category: r.category,
@@ -129,11 +142,11 @@ export function DiscoverClient() {
       external_url: r.url,
       estimated_price: r.price ?? 0,
       currency: 'BRL',
-      raw_payload: r.meta || {},
+      raw_payload: (r as any).raw || {},
     });
 
     if (err) return setMessage({ type: 'error', text: err.message });
-    setSavedUrls((s) => new Set(s).add(r.url));
+    setSavedUrls((s) => new Set(s).add(r.url || ''));
     setMessage({ type: 'ok', text: `"${r.title}" guardado na Caixa de Descobertas!` });
   };
 
@@ -143,115 +156,125 @@ export function DiscoverClient() {
         
         {/* Cabeçalho */}
         <div style={{ marginBottom: '1.5rem' }}>
-          <span className="gt-badge" style={{ background: 'var(--brand-yellow-light)', color: 'var(--brand-dark)' }}>
-            <Compass size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
-            Buscador Multi-Provedores
-          </span>
-          <h1 className="gt-title" style={{ marginTop: '0.5rem' }}>Descobrir Viagens</h1>
+          <div className="gt-badge" style={{ marginBottom: '0.5rem' }}>
+            <Compass size={14} /> Garimpar Ofertas & Dicas
+          </div>
+          <h1 className="gt-title">Descobrir Destinos</h1>
           <p className="gt-subtitle">
             Pesquise voos, estadias e passeios com autocomplete e guarde na sua Caixa de Descobertas.
           </p>
         </div>
 
+        {/* Seletor de Viagem Ativa */}
+        <div style={{ marginBottom: '1.5rem' }}>
+          <TripPicker
+            trips={trips}
+            selectedId={selectedId}
+            onChange={setSelectedId}
+            loading={tripsLoading}
+          />
+        </div>
+
         {/* Barra de Pesquisa Bento com Autocomplete */}
-        <section className={styles.searchSection}>
-          <form className={styles.searchBar} onSubmit={handleSearchSubmit}>
+        <div className="gt-card" style={{ marginBottom: '2rem' }}>
+          <form onSubmit={handleSearchSubmit}>
             <div className={styles.searchInputsGrid}>
+              
               <div className={styles.autocompleteField}>
                 <AutocompleteInput
-                  id="disc-origin"
+                  id="origem"
                   label="Origem"
+                  placeholder="Ex: São Paulo, Rio de Janeiro..."
                   value={origin}
                   onChange={setOrigin}
-                  placeholder="De onde você sai?"
-                  required
                 />
               </div>
 
               <div className={styles.autocompleteField}>
                 <AutocompleteInput
-                  id="disc-destination"
+                  id="destino"
                   label="Destino"
+                  placeholder="Ex: Salvador, Buenos Aires, Paris..."
                   value={destination}
                   onChange={setDestination}
-                  placeholder="Para onde quer ir?"
                   required
                 />
               </div>
 
-              <div className={styles.smallField}>
-                <label className="gt-label">Mês da ida
-                  <input 
-                    className="gt-input" 
-                    type="month" 
-                    value={month} 
-                    onChange={(e) => setMonth(e.target.value)} 
-                    required 
-                  />
-                </label>
+              <div className={styles.field}>
+                <label className="gt-label">Mês da Viagem</label>
+                <input 
+                  type="month" 
+                  className="gt-input" 
+                  value={month} 
+                  onChange={(e) => setMonth(e.target.value)} 
+                />
               </div>
 
-              <div className={styles.smallField}>
-                <label className="gt-label">Teto (R$)
-                  <input 
-                    className="gt-input" 
-                    type="number" 
-                    min={0} 
-                    value={budget} 
-                    onChange={(e) => setBudget(e.target.value)} 
-                    placeholder="3500" 
-                  />
-                </label>
+              <div className={styles.field}>
+                <label className="gt-label">Teto Orçamento (R$)</label>
+                <input 
+                  type="text" 
+                  className="gt-input" 
+                  placeholder="Ex: 3500" 
+                  value={budget} 
+                  onChange={(e) => setBudget(e.target.value)} 
+                />
               </div>
+
             </div>
 
-            <div className={styles.actionRow}>
-              <button type="submit" className="gt-btn gt-btn-dark" disabled={searching}>
-                <Search size={16} /> 
+            <div className={styles.searchActions}>
+              <button type="submit" className="gt-btn gt-btn-yellow" disabled={searching}>
+                <Search size={16} />
                 <span>{searching ? 'Garimpando…' : 'Garimpar Destino'}</span>
               </button>
-            </div>
-          </form>
-        </section>
 
-        {/* Barra de Seleção / Criação de Viagem */}
-        <div className={styles.tripBar}>
-          {user ? (
-            <>
-              <TripPicker trips={trips} selectedId={selectedId} onChange={setSelectedId} loading={tripsLoading} />
-              {searched?.destination && (
-                <button type="button" className="gt-btn gt-btn-yellow" onClick={createTrip} disabled={creatingTrip}>
-                  <Plus size={16} /> Criar viagem para {cityName(searched.destination)}
+              {user && (
+                <button
+                  type="button"
+                  onClick={createTrip}
+                  disabled={creatingTrip}
+                  className="gt-btn gt-btn-light"
+                >
+                  <Plus size={16} />
+                  <span>{creatingTrip ? 'Criando…' : 'Criar Viagem deste Destino'}</span>
                 </button>
               )}
-            </>
-          ) : (
-            <div className="gt-notice">
-              Para guardar itens na Caixa de Descobertas,{' '}
-              <button type="button" className={styles.inlineLink} onClick={signIn}>entre com Google</button>.
             </div>
-          )}
+          </form>
         </div>
 
         {/* Mensagens de Feedback */}
         {message && (
-          <div className={message.type === 'ok' ? 'gt-success' : 'gt-error'} style={{ margin: '1rem 0' }}>
-            {message.text}
+          <div 
+            className="gt-card" 
+            style={{ 
+              marginBottom: '1.5rem', 
+              borderColor: message.type === 'error' ? '#ef4444' : '#10b981',
+              backgroundColor: message.type === 'error' ? '#fef2f2' : '#ecfdf5',
+              padding: '1rem' 
+            }}
+          >
+            <p style={{ color: message.type === 'error' ? '#b91c1c' : '#047857', margin: 0, fontWeight: 500 }}>
+              {message.text}
+            </p>
           </div>
         )}
 
         {/* Resultados */}
-        <section style={{ marginTop: '2rem' }}>
-          {searching && <p className="gt-muted">Garimpando provedores oficiais…</p>}
-          {!searching && searched && results.length === 0 && (
-            <div className="gt-notice">
-              Nenhuma oferta encontrada para esta combinação no momento. Tente alterar o mês ou o destino.
-            </div>
-          )}
+        {searched && (
+          <div style={{ marginBottom: '1rem' }}>
+            <h2 className="gt-title" style={{ fontSize: '1.25rem' }}>
+              Ofertas e Ideias para {searched.destination} ({searched.month})
+            </h2>
+          </div>
+        )}
 
+        {results.length > 0 ? (
           <div className={styles.resultsGrid}>
             {results.map((r, idx) => {
-              const saved = savedUrls.has(r.url);
+              const saved = savedUrls.has(r.url || '');
               return (
                 <article key={idx} className={styles.resultCard}>
                   <div className={styles.cardTop}>
@@ -266,17 +289,17 @@ export function DiscoverClient() {
                       {r.price ? formatBRL(r.price) : 'Consulte parceiro'}
                     </span>
                     <div className={styles.cardBtns}>
-                      <a href={r.url} target="_blank" rel="noopener noreferrer" className="gt-btn gt-btn-light gt-btn-sm">
+                      <a href={r.url || '#'} target="_blank" rel="noopener noreferrer" className="gt-btn gt-btn-light gt-btn-sm">
                         <ExternalLink size={13} /> Ver oferta
                       </a>
                       {user && (
                         <button
                           type="button"
                           className="gt-btn gt-btn-yellow gt-btn-sm"
+                          onClick={() => saveToBox(r)}
                           disabled={saved}
-                          onClick={() => saveResult(r)}
                         >
-                          <Sparkles size={13} /> {saved ? 'Guardado' : 'Guardar'}
+                          <Plus size={13} /> {saved ? 'Guardado' : 'Guardar na Caixa'}
                         </button>
                       )}
                     </div>
@@ -285,7 +308,15 @@ export function DiscoverClient() {
               );
             })}
           </div>
-        </section>
+        ) : (
+          searched && !searching && (
+            <div className="gt-card" style={{ textAlign: 'center', padding: '3rem' }}>
+              <p className="gt-subtitle">
+                Nenhuma oferta encontrada para esta combinação no momento. Tente alterar o mês ou o destino.
+              </p>
+            </div>
+          )
+        )}
 
       </div>
     </main>
