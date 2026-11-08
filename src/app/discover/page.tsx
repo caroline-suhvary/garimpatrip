@@ -1,4 +1,3 @@
-// Descobrir Destinos: recebe a busca da página inicial pela URL.
 import { DiscoverClient } from '@/components/discover/DiscoverClient';
 
 export const metadata = { title: 'Descobrir Destinos | GarimpaTrip' };

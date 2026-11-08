@@ -12,9 +12,9 @@
 .heroBanner {
   position: relative;
   border-radius: var(--radius-bento);
-  background: linear-gradient(140deg, #E8A82A 0%, #D89518 100%);
+  background: linear-gradient(140deg, #e8a82a 0%, #d89518 100%);
   padding: 3.5rem 3rem;
-  overflow: hidden;
+  overflow: visible; /* <-- Troque 'hidden' por 'visible' */
   box-shadow: var(--shadow-md);
   border: 1.5px solid rgba(26, 24, 22, 0.12);
 }
@@ -24,7 +24,7 @@
   padding: 0.4rem 1.1rem;
   border-radius: var(--radius-pill);
   background-color: rgba(26, 24, 22, 0.12);
-  color: #1A1816;
+  color: #1a1816;
   font-size: 0.75rem;
   font-weight: 800;
   text-transform: uppercase;
@@ -36,7 +36,7 @@
 .heroTitle {
   font-size: 3.1rem;
   font-weight: 900;
-  color: #1A1816;
+  color: #1a1816;
   line-height: 1.12;
   letter-spacing: -1.2px;
   max-width: 760px;
@@ -53,6 +53,8 @@
 
 /* Barra de Busca Flutuante com Alto Contraste */
 .searchBar {
+  position: relative;
+  z-index: 50;
   margin-top: 2.75rem;
   background-color: var(--bg-sand-50);
   border-radius: 18px;
@@ -73,10 +75,12 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.65rem 1.1rem;
-  background-color: #FFFFFF;
+  background-color: #ffffff;
   border-radius: 12px;
   border: 1.5px solid var(--bg-sand-300);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 [data-theme="dark"] .inputField,
@@ -115,8 +119,8 @@ body.dark .inputField {
 
 .searchBtn {
   height: 54px;
-  background-color: #1A1816;
-  color: #FFFFFF;
+  background-color: #1a1816;
+  color: #ffffff;
   font-size: 1rem;
   font-weight: 800;
   border-radius: 12px;
@@ -124,12 +128,14 @@ body.dark .inputField {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  transition: background-color 0.15s ease, transform 0.15s ease;
-  border: 1.5px solid #1A1816;
+  transition:
+    background-color 0.15s ease,
+    transform 0.15s ease;
+  border: 1.5px solid #1a1816;
 }
 
 .searchBtn:hover {
-  background-color: #332D27;
+  background-color: #332d27;
   transform: translateY(-1px);
 }
 
@@ -189,7 +195,10 @@ body.dark .inputField {
   min-height: 225px;
   border: var(--border-bento);
   box-shadow: var(--shadow-sm);
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+  transition:
+    transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .bentoCard:hover {
@@ -281,7 +290,7 @@ body.dark .cardBadge {
   height: 32px;
   border-radius: var(--radius-pill);
   background-color: var(--brand-yellow);
-  color: #1A1816;
+  color: #1a1816;
   font-weight: 900;
   display: flex;
   align-items: center;
@@ -379,14 +388,16 @@ body.dark .cardBadge {
 .howItWorksCard,
 .workflowCard,
 .infoCard {
-  background-color: var(--bg-sand-50, #FAF7F2);
+  background-color: var(--bg-sand-50, #faf7f2);
   border-radius: var(--radius-card, 16px);
   padding: 2rem 1.75rem;
-  border: 1.5px solid var(--bg-sand-300, #CFC7B9);
+  border: 1.5px solid var(--bg-sand-300, #cfc7b9);
   box-shadow: var(--shadow-sm, 0 1px 3px rgba(26, 24, 22, 0.05));
   display: flex;
   flex-direction: column;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .stepCard:hover,
@@ -404,8 +415,8 @@ body.dark .cardBadge {
   width: 36px;
   height: 36px;
   border-radius: 9999px;
-  background-color: var(--brand-yellow, #E5A428);
-  color: #1A1816;
+  background-color: var(--brand-yellow, #e5a428);
+  color: #1a1816;
   font-weight: 900;
   display: flex;
   align-items: center;
@@ -421,7 +432,7 @@ body.dark .cardBadge {
 .cardTitle {
   font-size: 1.2rem;
   font-weight: 800;
-  color: var(--text-dark, #1A1816);
+  color: var(--text-dark, #1a1816);
   margin-bottom: 0.6rem;
 }
 
@@ -430,6 +441,6 @@ body.dark .cardBadge {
 .howItWorksDesc,
 .cardDesc {
   font-size: 0.9rem;
-  color: var(--text-muted, #5C564E);
+  color: var(--text-muted, #5c564e);
   line-height: 1.5;
 }

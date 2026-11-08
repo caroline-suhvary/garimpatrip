@@ -146,9 +146,32 @@ export interface SearchResult {
 }
 
 export interface SearchResponse {
+  degraded?: boolean;
+  fallbackUrls?: { google?: string; brave?: string };
   results: SearchResult[];
   /** Mensagem amigável quando a chave não está configurada ou a API falhou. */
   notice?: string;
   /** Link opcional para continuar a busca no site do parceiro. */
   moreUrl?: string;
+}
+
+
+export interface WeatherData {
+  destination: string;
+  temperature: number;
+  apparentTemperature: number;
+  humidity: number;
+  precipitation: number;
+  weatherCode: number;
+  conditionLabel: string;
+  tempMax: number;
+  tempMin: number;
+  packingTip: string;
+}
+
+export interface CitySummary {
+  title: string;
+  extract: string;
+  thumbnailUrl?: string;
+  pageUrl?: string;
 }

@@ -8,6 +8,11 @@ export const metadata: Metadata = {
   title: "GarimpaTrip | Planejador Inteligente de Viagens",
   description:
     "Garimpe a viagem perfeita sem 30 abas abertas. Agregador inteligente e transparente de viagens.",
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+  },
 };
 
 export const viewport: Viewport = {

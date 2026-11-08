@@ -4,9 +4,10 @@ import { createClient } from '@supabase/supabase-js';
 
 export async function GET(
   request: Request,
-  { params }: { params: { partner: string } }
+  { params }: { params: Promise<{ partner: string }> }
 ) {
-  const partnerId = params.partner?.toLowerCase();
+  const resolvedParams = await params;
+  const partnerId = resolvedParams.partner?.toLowerCase();
   const partner = AVAILABLE_PARTNERS[partnerId];
 
   if (!partner) {

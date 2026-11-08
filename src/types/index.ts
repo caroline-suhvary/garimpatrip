@@ -12,7 +12,7 @@ export type CategoryId =
   | 'budget'
   | 'checklist';
 
-export type DiscoveryCategory = 'flight' | 'hotel' | 'tour' | 'transport' | 'doc' | 'food' | 'web_idea';
+export type DiscoveryCategory = 'flight' | 'hotel' | 'tour' | 'transport' | 'doc' | 'food' | 'web_idea' | 'web';
 export type SourceType = 'api_partner' | 'web_result' | 'manual';
 export type TripStatus = 'planejamento' | 'reservado' | 'concluido' | 'arquivado';
 export type PackageStatus = 'planejado' | 'reservado' | 'pago';
@@ -142,19 +142,32 @@ export interface SearchResult {
   price: number | null;
   currency: string;
   url: string | null;
-  raw: Record<string, unknown>;
+  raw?: Record<string, unknown>;
 }
 
 export interface SearchResponse {
   degraded?: boolean;
-  fallbackUrls?: { google?: string; brave?: string };
+  fallbackUrls?: {
+    google?: string;
+    brave?: string;
+    booking?: string;
+    rome2rio?: string;
+    clickbus?: string;
+    deonibus?: string;
+    buser?: string;
+    getyourguide?: string;
+    civitatis?: string;
+    tripadvisor?: string;
+    viator?: string;
+    googleVoos?: string;
+    [key: string]: string | undefined;
+  };
   results: SearchResult[];
   /** Mensagem amigável quando a chave não está configurada ou a API falhou. */
   notice?: string;
   /** Link opcional para continuar a busca no site do parceiro. */
   moreUrl?: string;
 }
-
 
 export interface WeatherData {
   destination: string;

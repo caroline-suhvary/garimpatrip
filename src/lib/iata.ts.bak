@@ -1,0 +1,112 @@
+// Resolução e normalização de códigos IATA e nomes de cidades para GarimpaTrip.
+
+const LOCAL_IATA: Record<string, string> = {
+  'sao paulo': 'SAO', 'rio de janeiro': 'RIO', 'salvador': 'SSA', 'recife': 'REC', 'fortaleza': 'FOR',
+  'florianopolis': 'FLN', 'foz do iguacu': 'IGU', 'brasilia': 'BSB', 'belo horizonte': 'BHZ',
+  'porto alegre': 'POA', 'curitiba': 'CWB', 'natal': 'NAT', 'maceio': 'MCZ', 'joao pessoa': 'JPA',
+  'manaus': 'MAO', 'belem': 'BEL', 'goiania': 'GYN', 'vitoria': 'VIX', 'porto seguro': 'BPS',
+  'buenos aires': 'BUE', 'santiago': 'SCL', 'lisboa': 'LIS', 'madri': 'MAD', 'paris': 'PAR',
+  'londres': 'LON', 'nova york': 'NYC', 'miami': 'MIA', 'orlando': 'ORL', 'roma': 'ROM',
+  'bogota': 'BOG', 'lima': 'LIM', 'montevideu': 'MVD', 'cancun': 'CUN',
+};
+
+// Cidades turísticas conhecidas que NÃO possuem aeroporto comercial regular com voos IATA.
+// Nesses destinos, evitamos consultar o autocomplete para não trazer cidades homônimas espúrias.
+const NO_AIRPORT_CITIES = new Set([
+  'paraty', 'parati', 'ubatuba', 'ilha grande', 'angra dos reis', 'arraial do cabo',
+  'buzios', 'armacao dos buzios', 'morro de sao paulo', 'boipeba', 'trancoso',
+  'itacare', 'gramado', 'canela', 'monte verde', 'campos do jordao', 'visconde de maua',
+  'penedo', 'chapada diamantina', 'lencois', 'sao thome das letras', 'capitolio',
+  'bonito', 'maragogi', 'pipa', 'praia da pipa', 'sao miguel do gostoso', 'jericoacoara'
+]);
+
+export function normalizeText(s: string): string {
+  return (s || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+/** Extrai a cidade pura, removendo IATA entre parênteses e país após vírgula: "Paraty, Brasil" -> "Paraty". */
+export function cleanCity(input: string): string {
+  if (!input) return '';
+  // Remove parênteses como (GRU)
+  let val = input.replace(/\([A-Za-z]{3}\)\s*$/, '').trim();
+  // Se houver vírgula separando país/estado, pega a primeira parte (a cidade)
+  if (val.includes(',')) {
+    val = val.split(',')[0].trim();
+  }
+  return val;
+}
+
+/** Gera um slug limpo para URLs (ex: "São Paulo (GRU)" -> "sao-paulo"). */
+export function slugifyCity(input: string): string {
+  const city = cleanCity(input);
+  const normalized = normalizeText(city);
+  return normalized.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
+/** Tenta extrair IATA sem consulta de rede. */
+export function extractIata(input: string): string | null {
+  if (!input) return null;
+  const paren = input.match(/\(([A-Za-z]{3})\)/);
+  if (paren) return paren[1].toUpperCase();
+  const trimmed = input.trim();
+  if (/^[A-Za-z]{3}$/.test(trimmed)) return trimmed.toUpperCase();
+
+  const city = cleanCity(trimmed);
+  const norm = normalizeText(city);
+  if (NO_AIRPORT_CITIES.has(norm)) return null;
+
+  return LOCAL_IATA[norm] ?? null;
+}
+
+/** Verifica se um candidato retornado pela API tem relação real com o termo pesquisado. */
+function isRelevantMatch(searchTerm: string, candidateName: string): boolean {
+  const normSearch = normalizeText(searchTerm);
+  const normCand = normalizeText(candidateName);
+  if (!normSearch || !normCand) return false;
+  return (
+    normCand === normSearch ||
+    normCand.startsWith(normSearch) ||
+    normSearch.startsWith(normCand)
+  );
+}
+
+/** Resolve o código IATA, validando rigorosamente para evitar homônimos ou falsos positivos. */
+export async function resolveIata(input: string): Promise<string | null> {
+  const local = extractIata(input);
+  if (local) return local;
+
+  const city = cleanCity(input);
+  const norm = normalizeText(city);
+  if (NO_AIRPORT_CITIES.has(norm) || city.length < 2) return null;
+
+  try {
+    const url = `https://autocomplete.travelpayouts.com/places2?term=${encodeURIComponent(city)}&locale=pt&types[]=city&types[]=airport`;
+    const res = await fetch(url, { next: { revalidate: 86400 } });
+    if (!res.ok) return null;
+
+    const data = (await res.json()) as Array<{
+      name?: string;
+      code?: string;
+      city_name?: string;
+      type?: string;
+    }>;
+
+    if (!Array.isArray(data) || data.length === 0) return null;
+
+    // Busca o primeiro item que realmente corresponda ao nome da cidade digitada
+    for (const item of data) {
+      if (item.code && item.name && isRelevantMatch(city, item.name)) {
+        return item.code.toUpperCase();
+      }
+    }
+
+    // Se nenhum item bater de verdade com o nome, não aceita resultado genérico/falso
+    return null;
+  } catch {
+    return null;
+  }
+}

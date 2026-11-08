@@ -80,7 +80,7 @@ export async function checkQuotaAndTrack(
           latency_ms: latency,
         })
         .then(() => {})
-        .catch(() => {});
+        .then(() => {}, () => {});
     } catch {}
   }
 

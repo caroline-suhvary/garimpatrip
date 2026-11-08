@@ -1,5 +1,4 @@
 // GET /api/discover/flights|hotels|tours|transport|web?origin=...&destination=...&month=AAAA-MM
-// A tela de Descobrir chama estas rotas; elas consultam as APIs externas no servidor.
 import { NextResponse } from 'next/server';
 import { searchFlights, searchHotels, searchTours, searchTransport, searchWeb } from '@/lib/providers';
 import type { SearchResponse } from '@/types';
@@ -18,7 +17,7 @@ export async function GET(request: Request, ctx: { params: Promise<{ provider: s
   }
   const { searchParams } = new URL(request.url);
   const destination = clean(searchParams.get('destination'));
-  const origin = clean(searchParams.get('origin'));
+  const origin = clean(searchParams.get('origin')) || 'São Paulo';
   const month = clean(searchParams.get('month'), 7);
   if (destination.length < 2) {
     return NextResponse.json({ error: 'Informe o destino.' }, { status: 400 });
@@ -38,7 +37,7 @@ export async function GET(request: Request, ctx: { params: Promise<{ provider: s
       data = await searchTours(destination);
       break;
     case 'transport':
-      data = await searchTransport(destination);
+      data = await searchTransport(destination, origin);
       break;
     case 'web':
       data = await searchWeb(destination);

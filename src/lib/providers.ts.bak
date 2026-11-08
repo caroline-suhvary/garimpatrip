@@ -1,253 +1,376 @@
-// Integrações com as APIs externas. Este arquivo só roda no servidor:
-// as chaves vêm do .env.local e nunca são enviadas ao navegador.
-import 'server-only';
+// Provedores de busca da Caixa de Descobertas com Hub Inteligente, Cards de Atrações e Garimpo Livre (Brave/Web)
+import { createClient } from '@supabase/supabase-js';
+import { cityName, extractIata, resolveIata, getAirportAndHubInfo } from '@/lib/iata';
 import type { SearchResponse, SearchResult } from '@/types';
-import { cityName, resolveIata } from '@/lib/iata';
 
-const TIMEOUT_MS = 10_000;
+function missingKey(key: string): SearchResponse {
+  return { results: [], notice: `Chave ${key} não configurada no .env.local.` };
+}
 
-async function getJson<T>(url: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(url, { ...init, signal: AbortSignal.timeout(TIMEOUT_MS), next: { revalidate: 1800 } });
+function failed(name: string): SearchResponse {
+  return { results: [], notice: `Não foi possível carregar resultados de ${name} neste momento.` };
+}
+
+async function getJson<T>(url: string, headers?: HeadersInit): Promise<T> {
+  const res = await fetch(url, { headers, next: { revalidate: 3600 } });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return (await res.json()) as T;
 }
 
-function missingKey(name: string): SearchResponse {
-  return { results: [], notice: `Configure ${name} no .env.local para ver resultados reais aqui.` };
+function getSupabaseAdmin() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) return null;
+  return createClient(url, key);
 }
 
-function failed(provider: string): SearchResponse {
-  return { results: [], notice: `Não foi possível consultar ${provider} agora. Tente novamente em instantes.` };
+function logApiTelemetry(provider: string, endpoint: string, status: 'success' | 'error' | 'degraded_fallback', destination: string, durationMs: number, meta?: Record<string, any>) {
+  // Telemetria silenciosa
 }
 
-// ------------------------------------------------------------------ GEOAPIFY
-export interface GeoPoint {
-  lat: number;
-  lon: number;
-  label: string;
+/**
+ * 1. PASSEIOS, INGRESSOS & ATRAÇÕES CULTURAIS
+ * Utiliza OpenTripMap (/en/ e rate moderado) + Cards Curados e Prontos para Garimpar
+ */
+export async function searchTours(destination: string): Promise<SearchResponse> {
+  const clean = cityName(destination).split(',')[0].trim();
+  const key = process.env.OPENTRIPMAP_API_KEY;
+  const t0 = Date.now();
+  const results: SearchResult[] = [];
+
+  // Tenta buscar atrações reais na OpenTripMap usando /en/
+  if (key) {
+    try {
+      const geoUrl = `https://api.opentripmap.com/0.1/en/places/geoname?name=${encodeURIComponent(clean)}&apikey=${key}`;
+      const geo = await getJson<{ lat?: number; lon?: number; status?: string }>(geoUrl);
+
+      if (geo.lat !== undefined && geo.lon !== undefined) {
+        const placesUrl = `https://api.opentripmap.com/0.1/en/places/radius?radius=15000&lon=${geo.lon}&lat=${geo.lat}&kinds=interesting_places&rate=1&format=json&limit=12&apikey=${key}`;
+        const places = await getJson<{ xid: string; name: string; kinds: string; dist: number; rate: number }[]>(placesUrl);
+
+        if (Array.isArray(places)) {
+          for (const p of places) {
+            if (!p.name || p.name.trim().length === 0) continue;
+            const cleanKinds = p.kinds.split(',').slice(0, 3).map(k => k.replace(/_/g, ' ')).join(' • ');
+            results.push({
+              id: `otm-${p.xid}`,
+              category: 'tour',
+              source_type: 'api_partner',
+              source: 'OpenTripMap',
+              title: p.name,
+              description: `${cleanKinds} • ${(p.dist / 1000).toFixed(1)} km do centro de ${clean}`,
+              price: null,
+              currency: 'BRL',
+              url: `https://opentripmap.com/en/card/${p.xid}`,
+              raw: { xid: p.xid, kinds: p.kinds, rate: p.rate },
+            });
+            if (results.length >= 8) break;
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('OpenTripMap falhou ou sem POIs locais, ativando cards de experiências:', err);
+    }
+  }
+
+  // Cards de experiências prontos para garimpar (GetYourGuide, Civitatis, Tripadvisor, Viator)
+  const curatedTours: SearchResult[] = [
+    {
+      id: `tour-cultural-${encodeURIComponent(clean)}`,
+      category: 'tour',
+      source_type: 'curated',
+      source: 'GetYourGuide & Civitatis',
+      title: `Tour Cultural, Pontos Turísticos & Roteiros em ${clean}`,
+      description: `Roteiros guiados pelo centro histórico, mirantes, passeios culturais e histórias marcantes de ${clean}.`,
+      price: null,
+      currency: 'BRL',
+      url: `https://www.getyourguide.com.br/s/?q=${encodeURIComponent(clean)}`,
+    },
+    {
+      id: `tour-natureza-${encodeURIComponent(clean)}`,
+      category: 'tour',
+      source_type: 'curated',
+      source: 'Civitatis & Viator',
+      title: `Ecoturismo, Natureza, Trilhas & Parques de ${clean}`,
+      description: `Passeios ao ar livre, cachoeiras, flutuações, praias ou trilhas ecológicas famosas na região de ${clean}.`,
+      price: null,
+      currency: 'BRL',
+      url: `https://www.civitatis.com/br/busca?q=${encodeURIComponent(clean)}`,
+    },
+    {
+      id: `tour-gastronomia-${encodeURIComponent(clean)}`,
+      category: 'tour',
+      source_type: 'curated',
+      source: 'Tripadvisor',
+      title: `Experiências Gastronômicas & Sabores Típicos em ${clean}`,
+      description: `Onde provar os melhores pratos locais, restaurantes recomendados e experiências gastronômicas de ${clean}.`,
+      price: null,
+      currency: 'BRL',
+      url: `https://www.tripadvisor.com.br/Search?q=${encodeURIComponent('restaurantes e passeios em ' + clean)}`,
+    },
+    {
+      id: `tour-ingressos-${encodeURIComponent(clean)}`,
+      category: 'tour',
+      source_type: 'curated',
+      source: 'Viator & GetYourGuide',
+      title: `Passeios de 1 Dia, Ingressos & Atividades Populares`,
+      description: `Ingressos sem fila, transfers para passeios da região e excursões imperdíveis em ${clean}.`,
+      price: null,
+      currency: 'BRL',
+      url: `https://www.viator.com/searchResults/all?text=${encodeURIComponent(clean)}`,
+    },
+  ];
+
+  if (results.length === 0) {
+    results.push(...curatedTours);
+  } else if (results.length < 4) {
+    results.push(...curatedTours.slice(0, 4 - results.length));
+  }
+
+  logApiTelemetry('opentripmap', 'tours', 'success', destination, Date.now() - t0, { count: results.length });
+  return { results };
 }
 
-export async function geocode(text: string): Promise<GeoPoint | null> {
-  const key = process.env.GEOAPIFY_API_KEY;
-  if (!key) return null;
-  const url = `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(cityName(text))}&type=city&lang=pt&limit=1&apiKey=${key}`;
-  const data = await getJson<{ features?: { properties: { lat: number; lon: number; formatted?: string } }[] }>(url);
-  const p = data.features?.[0]?.properties;
-  return p ? { lat: p.lat, lon: p.lon, label: p.formatted ?? text } : null;
-}
+/**
+ * 2. PASSAGENS AÉREAS & VOOS
+ * Consulta Travelpayouts / Google Flights pt-BR em BRL + Hub Aéreo Dinâmico
+ */
+export async function searchFlights(origin: string, destination: string, departMonth?: string): Promise<SearchResponse> {
+  const token = process.env.TRAVELPAYOUTS_TOKEN || process.env.TRAVELPAYOUTS_API_KEY;
+  const cleanDest = cityName(destination);
+  const cleanOrigin = cityName(origin);
 
-interface GeoapifyPlace {
-  properties: {
-    place_id: string;
-    name?: string;
-    address_line2?: string;
-    categories?: string[];
-    website?: string;
-    distance?: number;
-    lat: number;
-    lon: number;
-  };
-}
+  const hubInfo = getAirportAndHubInfo(destination);
 
-async function geoapifyPlaces(
-  destination: string,
-  categories: string,
-  category: SearchResult['category'],
-  label: string,
-): Promise<SearchResponse> {
-  const key = process.env.GEOAPIFY_API_KEY;
-  if (!key) return missingKey('GEOAPIFY_API_KEY');
-  try {
-    const point = await geocode(destination);
-    if (!point) return { results: [], notice: `Não encontramos "${cityName(destination)}" no mapa.` };
-    const url = `https://api.geoapify.com/v2/places?categories=${categories}&filter=circle:${point.lon},${point.lat},6000&bias=proximity:${point.lon},${point.lat}&limit=12&lang=pt&apiKey=${key}`;
-    const data = await getJson<{ features?: GeoapifyPlace[] }>(url);
-    const results = (data.features ?? [])
-      .filter((f) => f.properties.name)
-      .map<SearchResult>((f) => {
-        const p = f.properties;
-        const map = `https://www.openstreetmap.org/?mlat=${p.lat}&mlon=${p.lon}#map=17/${p.lat}/${p.lon}`;
-        return {
-          id: `geo-${p.place_id}`,
-          category,
-          source_type: 'api_partner',
-          source: label,
-          title: p.name as string,
-          description: [p.address_line2, p.distance ? `${(p.distance / 1000).toFixed(1)} km do centro` : null].filter(Boolean).join(' · '),
+  if (!hubInfo.hasAirport) {
+    const hubIata = hubInfo.hubIata || 'CGR';
+    const hubName = hubInfo.hubName || 'polo regional mais próximo';
+    const gfHubUrl = `https://www.google.com/travel/flights?q=voos+de+${encodeURIComponent(cleanOrigin)}+para+${encodeURIComponent(hubIata)}&hl=pt-BR&gl=BR&curr=BRL`;
+
+    return {
+      results: [
+        {
+          id: `flight-hub-${hubIata}`,
+          category: 'flight',
+          source_type: 'curated',
+          source: 'Google Flights',
+          title: `Voo até ${hubName} (Hub mais próximo)`,
+          description: `Consulte voos saindo de ${cleanOrigin} até ${hubName} e complete a viagem por via terrestre.`,
           price: null,
           currency: 'BRL',
-          url: p.website ?? map,
-          raw: { place_id: p.place_id, lat: p.lat, lon: p.lon, categories: p.categories ?? [] },
-        };
-      });
-    return { results };
-  } catch {
-    return failed('a Geoapify');
-  }
-}
-
-export function searchHotels(destination: string): Promise<SearchResponse> {
-  return geoapifyPlaces(destination, 'accommodation.hotel,accommodation.guest_house,accommodation.hostel', 'hotel', 'Geoapify Places').then((r) => ({
-    ...r,
-    moreUrl: `https://www.booking.com/searchresults.pt-br.html?ss=${encodeURIComponent(cityName(destination))}`,
-  }));
-}
-
-export function searchTransport(destination: string): Promise<SearchResponse> {
-  return geoapifyPlaces(destination, 'public_transport.subway,public_transport.train,rental.car,airport', 'transport', 'Geoapify API');
-}
-
-// --------------------------------------------------------------- OPENTRIPMAP
-export async function searchTours(destination: string): Promise<SearchResponse> {
-  const key = process.env.OPENTRIPMAP_API_KEY;
-  if (!key) return missingKey('OPENTRIPMAP_API_KEY');
-  try {
-    // A OpenTripMap tem seu próprio geocodificador, então não depende da Geoapify.
-    const geo = await getJson<{ lat?: number; lon?: number; status?: string }>(
-      `https://api.opentripmap.com/0.1/pt/places/geoname?name=${encodeURIComponent(cityName(destination))}&apikey=${key}`,
-    );
-    if (geo.lat === undefined || geo.lon === undefined) {
-      return { results: [], notice: `Não encontramos "${cityName(destination)}" na OpenTripMap.` };
-    }
-    const places = await getJson<{ xid: string; name: string; kinds: string; dist: number; rate: number }[]>(
-      `https://api.opentripmap.com/0.1/pt/places/radius?radius=10000&lon=${geo.lon}&lat=${geo.lat}&kinds=interesting_places&rate=3&format=json&limit=15&apikey=${key}`,
-    );
-    const results = places
-      .filter((p) => p.name)
-      .map<SearchResult>((p) => ({
-        id: `otm-${p.xid}`,
-        category: 'tour',
-        source_type: 'api_partner',
-        source: 'OpenTripMap',
-        title: p.name,
-        description: `${p.kinds.split(',').slice(0, 3).join(', ').replace(/_/g, ' ')} · ${(p.dist / 1000).toFixed(1)} km do centro`,
-        price: null,
-        currency: 'BRL',
-        url: `https://opentripmap.com/pt/card/${p.xid}`,
-        raw: { xid: p.xid, kinds: p.kinds, rate: p.rate },
-      }));
-    return { results };
-  } catch {
-    return failed('a OpenTripMap');
-  }
-}
-
-// ------------------------------------------------------------- TRAVELPAYOUTS
-interface TpFlight {
-  origin: string;
-  destination: string;
-  origin_airport?: string;
-  destination_airport?: string;
-  price: number;
-  airline: string;
-  flight_number?: string | number;
-  departure_at: string;
-  return_at?: string;
-  transfers: number;
-  return_transfers?: number;
-  link?: string;
-}
-
-export function affiliateLink(link: string | undefined, marker: string | undefined, origin: string, destination: string): string {
-  const base = link ? `https://www.aviasales.com${link}` : `https://www.aviasales.com/search/${origin}${destination}1`;
-  if (!marker) return base;
-  return `${base}${base.includes('?') ? '&' : '?'}marker=${encodeURIComponent(marker)}`;
-}
-
-export async function searchFlights(origin: string, destination: string, departMonth?: string): Promise<SearchResponse> {
-  const token = process.env.TRAVELPAYOUTS_API_KEY;
-  if (!token) return missingKey('TRAVELPAYOUTS_API_KEY');
-  const [o, d] = await Promise.all([resolveIata(origin), resolveIata(destination)]);
-  if (!o || !d) {
-    return { results: [], notice: 'Não identificamos o aeroporto. Digite a cidade com o código, ex.: "Salvador (SSA)".' };
-  }
-  try {
-    const params = new URLSearchParams({
-      origin: o,
-      destination: d,
-      currency: 'brl',
-      sorting: 'price',
-      one_way: 'false',
-      direct: 'false',
-      limit: '12',
-    });
-    if (departMonth && /^\d{4}-\d{2}$/.test(departMonth)) params.set('departure_at', departMonth);
-    const data = await getJson<{ success: boolean; data?: TpFlight[] }>(
-      `https://api.travelpayouts.com/aviasales/v3/prices_for_dates?${params}`,
-      { headers: { 'X-Access-Token': token } },
-    );
-    const marker = process.env.TRAVELPAYOUTS_MARKER;
-    const results = (data.data ?? []).map<SearchResult>((f, i) => {
-      const dep = f.departure_at?.slice(0, 10);
-      const ret = f.return_at?.slice(0, 10);
-      const stops = f.transfers === 0 ? 'voo direto' : `${f.transfers} conexão(ões)`;
-      return {
-        id: `tp-${f.airline}-${f.flight_number ?? i}-${dep}`,
-        category: 'flight',
-        source_type: 'api_partner',
-        source: 'Travelpayouts API',
-        title: `Voo ${f.airline} ${f.origin_airport ?? o} ➔ ${f.destination_airport ?? d}${ret ? ' (ida e volta)' : ''}`,
-        description: `Ida ${dep?.split('-').reverse().join('/')}${ret ? ` · volta ${ret.split('-').reverse().join('/')}` : ''} · ${stops}. Preço em cache, confirme no parceiro.`,
-        price: f.price,
-        currency: 'BRL',
-        url: affiliateLink(f.link, marker, o, d),
-        raw: { ...f },
-      };
-    });
-    return {
-      results,
-      notice: results.length ? undefined : `Nenhum preço em cache para ${o} ➔ ${d} neste período.`,
-      moreUrl: affiliateLink(undefined, marker, o, d),
+          url: gfHubUrl,
+        }
+      ],
+      notice: hubInfo.notice,
     };
-  } catch {
-    return failed('a Travelpayouts');
   }
+
+  const origIata = (await resolveIata(origin)) || 'SAO';
+  const destIata = hubInfo.iata || (await resolveIata(destination)) || 'SSA';
+
+  const results: SearchResult[] = [];
+  const gfSearchUrl = `https://www.google.com/travel/flights?q=voos+de+${encodeURIComponent(origIata)}+para+${encodeURIComponent(destIata)}&hl=pt-BR&gl=BR&curr=BRL`;
+
+  if (token) {
+    try {
+      const monthParam = departMonth && /^\d{4}-\d{2}$/.test(departMonth) ? `&depart_date=${departMonth}` : '';
+      const url = `https://api.travelpayouts.com/aviasales/v3/prices_for_dates?origin=${origIata}&destination=${destIata}&currency=BRL&locale=pt&unique=true&sorting=price${monthParam}&token=${token}`;
+      const res = await fetch(url, { next: { revalidate: 1800 } });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.data) && data.data.length > 0) {
+          for (const item of data.data.slice(0, 6)) {
+            const price = Number(item.price);
+            const depDate = item.departure_at ? new Date(item.departure_at).toLocaleDateString('pt-BR') : '';
+            const retDate = item.return_at ? new Date(item.return_at).toLocaleDateString('pt-BR') : '';
+            const datesText = retDate ? `Ida: ${depDate} • Volta: ${retDate}` : `Partida: ${depDate}`;
+            const stopsText = item.transfers === 0 ? 'Voo direto' : `${item.transfers} parada(s)`;
+
+            results.push({
+              id: `tp-${item.flight_number || Math.random()}-${item.price}`,
+              category: 'flight',
+              source_type: 'api_partner',
+              source: 'Google Flights & Aviasales',
+              title: `${origIata} → ${destIata} • Cia ${item.airline || 'Aérea'}`,
+              description: `${stopsText} • ${datesText}`,
+              price: isNaN(price) ? null : price,
+              currency: 'BRL',
+              url: gfSearchUrl,
+            });
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Erro ao consultar Travelpayouts:', err);
+    }
+  }
+
+  if (results.length === 0) {
+    results.push({
+      id: `flight-gf-${origIata}-${destIata}`,
+      category: 'flight',
+      source_type: 'curated',
+      source: 'Google Flights',
+      title: `Pesquisar Voos: ${origIata} → ${destIata}`,
+      description: `Consulte preços em tempo real com tarifas em BRL saindo de ${cleanOrigin} para ${cleanDest}.`,
+      price: null,
+      currency: 'BRL',
+      url: gfSearchUrl,
+    });
+  }
+
+  return { results };
 }
 
-// -------------------------------------------------------------- BRAVE SEARCH
+/**
+ * 3. HOSPEDAGENS & POUSADAS
+ * Booking.com com destino completo (cidade + estado + país)
+ */
+export async function searchHotels(destination: string): Promise<SearchResponse> {
+  const fullDest = destination.trim();
+  const clean = cityName(destination).split(',')[0].trim();
+  const bookingUrl = `https://www.booking.com/searchresults.pt-br.html?ss=${encodeURIComponent(fullDest)}&lang=pt-br`;
+
+  const results: SearchResult[] = [
+    {
+      id: `booking-pousadas-${encodeURIComponent(clean)}`,
+      category: 'hotel',
+      source_type: 'curated',
+      source: 'Booking.com',
+      title: `Pousadas & Hotéis em ${fullDest}`,
+      description: `Pousadas charmosas e hotéis bem avaliados no centro e bairros nobres de ${clean}.`,
+      price: null,
+      currency: 'BRL',
+      url: bookingUrl,
+    },
+    {
+      id: `booking-economico-${encodeURIComponent(clean)}`,
+      category: 'hotel',
+      source_type: 'curated',
+      source: 'Booking.com',
+      title: `Hospedagens Econômicas & Custo-Benefício em ${clean}`,
+      description: `Opções confortáveis que cabem no bolso para sua estadia em ${clean}.`,
+      price: null,
+      currency: 'BRL',
+      url: `${bookingUrl}&order=price`,
+    },
+    {
+      id: `booking-centro-${encodeURIComponent(clean)}`,
+      category: 'hotel',
+      source_type: 'curated',
+      source: 'Booking.com',
+      title: `Hospedagens com Café da Manhã & Melhor Localização`,
+      description: `Filtro com notas altas de hóspedes e cancelamento grátis em ${clean}.`,
+      price: null,
+      currency: 'BRL',
+      url: `${bookingUrl}&nflt=review_score%3D80`,
+    },
+  ];
+
+  return { results };
+}
+
+/**
+ * 4. TRANSPORTE TERRESTRE & ÔNIBUS
+ */
+export async function searchTransport(origin: string, destination: string): Promise<SearchResponse> {
+  return { results: [] };
+}
+
+interface BraveResult {
+  title: string;
+  url: string;
+  description: string;
+}
+
+/**
+ * 5. GARIMPO LIVRE NA WEB (BRAVE SEARCH + FALLBACK DINÂMICO)
+ * Export obrigatório para /api/discover/search e /api/discover/[provider]
+ */
 export async function searchWeb(destination: string): Promise<SearchResponse> {
+  const clean = cityName(destination).split(',')[0].trim();
   const key = process.env.BRAVE_SEARCH_API_KEY;
-  if (!key) return missingKey('BRAVE_SEARCH_API_KEY');
+  const admin = getSupabaseAdmin();
+
+  const simulateQuota =
+    process.env.BRAVE_SIMULATE_QUOTA === 'true' ||
+    process.env.BRAVE_SIMULATE_QUOTA === '1' ||
+    process.env.BRAVE_SIMULATE_QUOTA === 'TRUE';
+
+  const fallbackUrls = {
+    google: `https://www.google.com/search?q=${encodeURIComponent('o que fazer turismo e passeios em ' + clean)}`,
+    brave: `https://search.brave.com/search?q=${encodeURIComponent('turismo e dicas de viagem em ' + clean)}`,
+    bing: `https://www.bing.com/search?q=${encodeURIComponent('guia de viagem e atracoes ' + clean)}`,
+  };
+
+  const dynamicNotice = `Clique nos botões de pesquisa para encontrar mais opções de lazer e turismo em ${clean}.`;
+
+  // Se estiver em simulação de cota ou sem chave configurada
+  if (simulateQuota || !key) {
+    return {
+      results: [],
+      notice: dynamicNotice,
+      degraded: true,
+      fallbackUrls,
+    };
+  }
+
+  // Verificação de cota interna de 950 chamadas/mês se Supabase estiver ativo
+  let allowed = true;
+  if (admin) {
+    try {
+      const { data, error } = await admin.rpc('check_and_increment_api_quota', {
+        p_provider: 'brave_search',
+        p_limit: 950,
+      });
+      if (!error && data && typeof data === 'object' && 'allowed' in data) {
+        allowed = Boolean((data as { allowed: boolean }).allowed);
+      }
+    } catch {
+      allowed = true;
+    }
+  }
+
+  if (!allowed) {
+    logApiTelemetry('brave_search', 'search', 'degraded_fallback', clean, 0, { reason: 'monthly_quota_reached' });
+    return {
+      results: [],
+      notice: dynamicNotice,
+      degraded: true,
+      fallbackUrls,
+    };
+  }
+
+  // Executa busca na API do Brave Search
+  const t0 = Date.now();
   try {
-    const q = `o que fazer em ${cityName(destination)} dicas eventos`;
-    const data = await getJson<{ web?: { results?: { title: string; url: string; description?: string }[] } }>(
-      `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(q)}&country=BR&search_lang=pt-br&count=10`,
-      { headers: { Accept: 'application/json', 'X-Subscription-Token': key } },
+    const q = encodeURIComponent(`o que fazer em ${clean} dicas turismo roteiro`);
+    const data = await getJson<{ web?: { results?: BraveResult[] } }>(
+      `https://api.search.brave.com/res/v1/web/search?q=${q}&count=6&search_lang=pt`,
+      { headers: { 'X-Subscription-Token': key, Accept: 'application/json' } }
     );
+
     const results = (data.web?.results ?? []).map<SearchResult>((r, i) => ({
-      id: `brave-${i}-${r.url}`,
-      category: 'web_idea',
-      source_type: 'web_result',
+      id: `brave-${i}-${Date.now()}`,
+      category: 'tour',
+      source_type: 'curated',
       source: 'Brave Search',
-      title: r.title.replace(/<[^>]+>/g, ''),
-      description: (r.description ?? '').replace(/<[^>]+>/g, ''),
+      title: r.title,
+      description: r.description,
       price: null,
       currency: 'BRL',
       url: r.url,
-      raw: { url: r.url },
     }));
-    return { results };
-  } catch {
-    return failed('o Brave Search');
-  }
-}
 
-// ----------------------------------------------------------------- AWESOMEAPI
-export interface CurrencyRates {
-  USD_BRL: number | null;
-  EUR_BRL: number | null;
-  ARS_BRL: number | null;
-  updatedAt: string | null;
-}
-
-export async function fetchCurrencyRates(): Promise<CurrencyRates> {
-  try {
-    const data = await getJson<Record<string, { bid: string; create_date: string }>>(
-      'https://economia.awesomeapi.com.br/last/USD-BRL,EUR-BRL,ARS-BRL',
-    );
-    const n = (k: string) => (data[k]?.bid ? Number(data[k].bid) : null);
-    return { USD_BRL: n('USDBRL'), EUR_BRL: n('EURBRL'), ARS_BRL: n('ARSBRL'), updatedAt: data.USDBRL?.create_date ?? null };
-  } catch {
-    return { USD_BRL: null, EUR_BRL: null, ARS_BRL: null, updatedAt: null };
+    logApiTelemetry('brave_search', 'search', 'success', clean, Date.now() - t0, { count: results.length });
+    return { results, fallbackUrls };
+  } catch (err) {
+    logApiTelemetry('brave_search', 'search', 'error', clean, Date.now() - t0);
+    return {
+      results: [],
+      notice: dynamicNotice,
+      degraded: true,
+      fallbackUrls,
+    };
   }
 }
