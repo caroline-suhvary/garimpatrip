@@ -12,3 +12,7 @@ __pycache__/
 .env
 .env.local_copia
 
+# Arquivos de backup
+*.bak
+*.backup
+*.old
