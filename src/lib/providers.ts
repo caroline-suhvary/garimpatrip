@@ -619,3 +619,133 @@ export async function searchWeb(destination: string): Promise<SearchResponse> {
     };
   }
 }
+function wmoCondition(code: number): string {
+  if (code === 0) return "Céu limpo";
+  if (code <= 3) return "Parcialmente nublado";
+  if (code <= 48) return "Nevoeiro";
+  if (code <= 55) return "Garoa leve";
+  if (code <= 65) return "Chuva moderada";
+  if (code <= 82) return "Pancadas de chuva";
+  if (code <= 99) return "Tempestade";
+  return "Clima variável";
+}
+
+function generatePackingTip(
+  tempMax: number,
+  tempMin: number,
+  precip: number,
+): string {
+  const tips: string[] = [];
+  if (tempMax >= 27)
+    tips.push(
+      "Tempo quente: leve roupas leves, protetor FPS 50 e óculos de sol.",
+    );
+  else if (tempMin <= 16)
+    tips.push(
+      "Noites frescas/frias: inclua casaco leve e calças confortáveis.",
+    );
+  else tips.push("Temperatura amena: ideal para caminhadas ao ar livre.");
+
+  if (precip > 2)
+    tips.push(
+      "Previsão de chuva: coloque capa ou guarda-chuva dobrável na mala.",
+    );
+  return tips.join(" ");
+}
+
+export async function fetchWeather(
+  destination: string,
+): Promise<WeatherData | null> {
+  const t0 = Date.now();
+  try {
+    const point = await geocode(destination);
+    if (!point) return null;
+
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${point.lat}&longitude=${point.lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=3`;
+    const data = await getJson<{
+      current?: {
+        temperature_2m: number;
+        apparent_temperature: number;
+        relative_humidity_2m: number;
+        precipitation: number;
+        weather_code: number;
+      };
+      daily?: {
+        temperature_2m_max: number[];
+        temperature_2m_min: number[];
+      };
+    }>(url);
+
+    if (!data.current) return null;
+
+    const temp = Math.round(data.current.temperature_2m);
+    const appTemp = Math.round(data.current.apparent_temperature);
+    const max = Math.round(data.daily?.temperature_2m_max?.[0] ?? temp);
+    const min = Math.round(data.daily?.temperature_2m_min?.[0] ?? temp);
+    const code = data.current.weather_code;
+    const precip = data.current.precipitation;
+
+    logApiTelemetry(
+      "open_meteo",
+      "weather",
+      "success",
+      destination,
+      Date.now() - t0,
+    );
+
+    return {
+      destination: cityName(destination),
+      temperature: temp,
+      apparentTemperature: appTemp,
+      humidity: data.current.relative_humidity_2m,
+      precipitation: precip,
+      weatherCode: code,
+      conditionLabel: wmoCondition(code),
+      tempMax: max,
+      tempMin: min,
+      packingTip: generatePackingTip(max, min, precip),
+    };
+  } catch {
+    logApiTelemetry(
+      "open_meteo",
+      "weather",
+      "error",
+      destination,
+      Date.now() - t0,
+    );
+    return null;
+  }
+}
+
+export interface CurrencyRates {
+  USD_BRL: number | null;
+  EUR_BRL: number | null;
+  ARS_BRL: number | null;
+  updatedAt: string | null;
+}
+
+export async function fetchCurrencyRates(): Promise<CurrencyRates> {
+  const t0 = Date.now();
+  try {
+    const data = await getJson<
+      Record<string, { bid: string; create_date: string }>
+    >("https://economia.awesomeapi.com.br/last/USD-BRL,EUR-BRL,ARS-BRL");
+    const n = (k: string) => (data[k]?.bid ? Number(data[k].bid) : null);
+    logApiTelemetry(
+      "awesomeapi",
+      "rates",
+      "success",
+      undefined,
+      Date.now() - t0,
+    );
+    return {
+      USD_BRL: n("USDBRL"),
+      EUR_BRL: n("EURBRL"),
+      ARS_BRL: n("ARSBRL"),
+      updatedAt: data.USDBRL?.create_date ?? null,
+    };
+  } catch {
+    logApiTelemetry("awesomeapi", "rates", "error", undefined, Date.now() - t0);
+    return { USD_BRL: null, EUR_BRL: null, ARS_BRL: null, updatedAt: null };
+  }
+}
