@@ -5,8 +5,8 @@ import type { PlaceSuggestion } from "@/app/api/autocomplete/route";
 import styles from "@/styles/Autocomplete.module.css";
 
 interface Props {
-  id: string;
-  label: string;
+  id?: string;
+  label?: string;
   value: string;
   onChange: (val: string) => void;
   placeholder?: string;

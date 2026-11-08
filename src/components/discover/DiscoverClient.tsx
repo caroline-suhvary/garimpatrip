@@ -243,7 +243,8 @@ export function DiscoverClient({
         raw_payload: item.raw || {},
       });
       if (error) throw error;
-      setSavedUrls((prev) => new Set(prev).add(item.id || item.url));
+      setSavedUrls((prev) => new Set(prev).add(item.id || item.url || ""));
+
       setMessage({
         type: "ok",
         text: `"${item.title.slice(0, 40)}" guardado na sua Caixa!`,
@@ -503,10 +504,11 @@ export function DiscoverClient({
               {flightsList.length > 0 && (
                 <div className={styles.grid}>
                   {flightsList.map((flight, idx) => {
-                    const saved = savedUrls.has(flight.id || flight.url);
-                    const googleUrl =
-                      flight.raw?.google_flights_url ||
-                      `https://www.google.com/travel/flights?q=Voos+para+${cleanDest}&hl=pt-BR&curr=BRL`;
+                    const saved = savedUrls.has(flight.id || flight.url || "");
+                    const googleUrl = String(
+                      (flight.raw as any)?.google_flights_url ||
+                        `https://www.google.com/travel/flights?q=Voos+para+${cleanDest}&hl=pt-BR&curr=BRL`,
+                    );
 
                     return (
                       <div key={`${flight.id}-${idx}`} className={styles.card}>
@@ -536,7 +538,7 @@ export function DiscoverClient({
                             <span>Google Voos (com datas)</span>
                           </a>
                           <a
-                            href={flight.url}
+                            href={flight.url || "#"}
                             target="_blank"
                             rel="noopener noreferrer"
                             className={styles.actionBtnSecondary}>
@@ -572,7 +574,7 @@ export function DiscoverClient({
 
               <div className={styles.grid}>
                 {transportList.map((item) => {
-                  const saved = savedUrls.has(item.id || item.url);
+                  const saved = savedUrls.has(item.id || item.url || "");
                   const isRome2Rio = item.source === "Rome2Rio";
 
                   return (
@@ -593,7 +595,7 @@ export function DiscoverClient({
                       <p className={styles.cardDesc}>{item.description}</p>
                       <div className={styles.cardActions}>
                         <a
-                          href={item.url}
+                          href={item.url || "#"}
                           target="_blank"
                           rel="noopener noreferrer"
                           className={styles.actionBtnPrimary}>
@@ -650,7 +652,7 @@ export function DiscoverClient({
 
               <div className={styles.grid}>
                 {hotelsList.map((hotel) => {
-                  const saved = savedUrls.has(hotel.id || hotel.url);
+                  const saved = savedUrls.has(hotel.id || hotel.url || "");
                   return (
                     <div key={hotel.id} className={styles.card}>
                       <div className={styles.cardHeader}>
@@ -660,16 +662,16 @@ export function DiscoverClient({
                       <p className={styles.cardDesc}>{hotel.description}</p>
                       <div className={styles.cardActions}>
                         <a
-                          href={hotel.url}
+                          href={hotel.url || "#"}
                           target="_blank"
                           rel="noopener noreferrer"
                           className={styles.actionBtnPrimary}>
                           <ExternalLink size={15} />
                           <span>Ver no Booking</span>
                         </a>
-                        {hotel.raw?.map_url && (
+                        {(hotel.raw as any)?.map_url && (
                           <a
-                            href={hotel.raw.map_url}
+                            href={String((hotel.raw as any).map_url)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className={styles.actionBtnSecondary}>
@@ -752,7 +754,7 @@ export function DiscoverClient({
 
               <div className={styles.grid}>
                 {toursList.map((tour) => {
-                  const saved = savedUrls.has(tour.id || tour.url);
+                  const saved = savedUrls.has(tour.id || tour.url || "");
                   return (
                     <div key={tour.id} className={styles.card}>
                       <div className={styles.cardHeader}>
@@ -762,16 +764,16 @@ export function DiscoverClient({
                       <p className={styles.cardDesc}>{tour.description}</p>
                       <div className={styles.cardActions}>
                         <a
-                          href={tour.url}
+                          href={tour.url || "#"}
                           target="_blank"
                           rel="noopener noreferrer"
                           className={styles.actionBtnPrimary}>
                           <ExternalLink size={15} />
                           <span>Buscar Ingressos</span>
                         </a>
-                        {tour.raw?.map_url && (
+                        {(tour.raw as any)?.map_url && (
                           <a
-                            href={tour.raw.map_url}
+                            href={String((tour.raw as any).map_url)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className={styles.actionBtnSecondary}>
@@ -881,7 +883,9 @@ export function DiscoverClient({
               {webList.length > 0 && !isWebDegraded && (
                 <div className={styles.grid}>
                   {webList.map((webItem) => {
-                    const saved = savedUrls.has(webItem.id || webItem.url);
+                    const saved = savedUrls.has(
+                      webItem.id || webItem.url || "",
+                    );
                     return (
                       <div key={webItem.id} className={styles.card}>
                         <div className={styles.cardHeader}>
@@ -891,7 +895,7 @@ export function DiscoverClient({
                         <p className={styles.cardDesc}>{webItem.description}</p>
                         <div className={styles.cardActions}>
                           <a
-                            href={webItem.url}
+                            href={webItem.url || "#"}
                             target="_blank"
                             rel="noopener noreferrer"
                             className={styles.actionBtnPrimary}>

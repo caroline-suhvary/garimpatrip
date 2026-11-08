@@ -122,6 +122,7 @@ export const DEFAULT_PACKAGE_CATEGORY: Record<DiscoveryCategory, number> = {
   doc: 5,
   food: 6,
   web_idea: 3,
+  web: 3,
 };
 
 export function categoryById(id: number): CategoryStyle | undefined {

@@ -5,7 +5,7 @@ import type {
   WeatherData,
   CitySummary,
 } from "@/types";
-import { cleanCity, slugifyCity, resolveIata } from "@/lib/iata";
+import { cityName, cleanCity, slugifyCity, resolveIata } from "@/lib/iata";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 const TIMEOUT_MS = 10_000;
