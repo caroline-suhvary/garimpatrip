@@ -285,6 +285,7 @@ export function DiscoverClient({
 
   const cleanDest = cleanCity(searched?.destination || destination);
   const cleanOrig = cleanCity(searched?.origin || origin);
+  const fullDestinationForSearch = (searched?.destination || destination).replace(/\([A-Za-z]{3}\)\s*$/, "").trim();
 
   const flightsList = data?.flights?.results || [];
   const transportList = data?.transport?.results || [];
@@ -432,7 +433,7 @@ export function DiscoverClient({
                 activeTab === "transport" ? styles.tabActive : styles.tab
               }
               onClick={() => setActiveTab("transport")}>
-              <Bus size={16} /> Ônibus & Rome2Rio ({transportList.length})
+              <Bus size={16} /> Transporte ({transportList.length})
             </button>
             <button
               className={activeTab === "hotels" ? styles.tabActive : styles.tab}
@@ -459,8 +460,7 @@ export function DiscoverClient({
         <div className={styles.loadingArea}>
           <div className={styles.spinner} />
           <p>
-            Consultando Travelpayouts, OpenTripMap, Rome2Rio, Booking e vias
-            terrestres...
+            Consultando voos, passeios, hospedagens e opções terrestres...
           </p>
         </div>
       )}
@@ -476,7 +476,7 @@ export function DiscoverClient({
                   <h2>Voos & Passagens Aéreas</h2>
                 </div>
                 <span className={styles.sectionBadge}>
-                  Travelpayouts & Google Voos
+                  Aviasales & Google Voos
                 </span>
               </div>
 
@@ -535,14 +535,14 @@ export function DiscoverClient({
                             rel="noopener noreferrer"
                             className={styles.actionBtnPrimary}>
                             <ExternalLink size={15} />
-                            <span>Google Voos (com datas)</span>
+                            <span>Pesquise em Google Voos</span>
                           </a>
                           <a
                             href={flight.url || "#"}
                             target="_blank"
                             rel="noopener noreferrer"
                             className={styles.actionBtnSecondary}>
-                            <span>Aviasales</span>
+                            <span>Pesquise em Aviasales</span>
                           </a>
                           <button
                             type="button"
@@ -567,7 +567,7 @@ export function DiscoverClient({
               <div className={styles.sectionHeader}>
                 <div className={styles.sectionTitleGroup}>
                   <Bus className={styles.sectionIcon} />
-                  <h2>Ônibus, Rome2Rio & Rotas Terrestres</h2>
+                  <h2>Ônibus, Aluguel de Carros & Rotas Terrestres</h2>
                 </div>
                 <span className={styles.sectionBadge}>Conexões Integradas</span>
               </div>
@@ -600,7 +600,7 @@ export function DiscoverClient({
                           rel="noopener noreferrer"
                           className={styles.actionBtnPrimary}>
                           <ExternalLink size={15} />
-                          <span>Ver Rotas no {item.source}</span>
+                          <span>Pesquisar rota em {item.source}</span>
                         </a>
                         <button
                           type="button"
@@ -803,84 +803,66 @@ export function DiscoverClient({
               <div className={styles.sectionHeader}>
                 <div className={styles.sectionTitleGroup}>
                   <Globe className={styles.sectionIcon} />
-                  <h2>Garimpo Livre na Web</h2>
+                  <h2>Guias de Viagem & Garimpo na Web</h2>
                 </div>
-                <span className={styles.sectionBadge}>
-                  {isWebDegraded ? "Modo Livre Ativado" : "Brave Search API"}
-                </span>
+                <span className={styles.sectionBadge}>Wikivoyage + buscas externas</span>
               </div>
 
-              {/* BANNER SE COTA ESTIVER SIMULADA OU ESGOTADA */}
-              {(isWebDegraded || webNotice) && (
-                <div className={styles.degradedBanner}>
-                  <div className={styles.degradedInfo}>
-                    <h3>🌐 Modo Garimpo Livre Ativado</h3>
-                    <p>
-                      {webNotice ||
-                        "Pesquise dicas e blogs em uma nova guia no Google ou Brave e cole os links que achar interessantes abaixo para guardar no seu roteiro:"}
-                    </p>
-                  </div>
-                  <div className={styles.degradedButtons}>
-                    <a
-                      href={
-                        webFallback?.google ||
-                        `https://www.google.com/search?q=${encodeURIComponent(`o que fazer em ${cleanDest} dicas roteiro`)}`
-                      }
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={styles.engineBtn}>
-                      <ExternalLink size={16} />
-                      <span>Pesquisar no Google</span>
-                    </a>
-                    <a
-                      href={
-                        webFallback?.brave ||
-                        `https://search.brave.com/search?q=${encodeURIComponent(`o que fazer em ${cleanDest} dicas roteiro`)}`
-                      }
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={styles.engineBtn}>
-                      <ExternalLink size={16} />
-                      <span>Pesquisar no Brave</span>
-                    </a>
-                  </div>
+              {/* A busca externa é exibida sempre, abaixo dos guias do Wikivoyage. */}
+              {webNotice && webList.length === 0 && (
+                <div className={styles.noticeCard}><p>{webNotice}</p></div>
+              )}
 
-                  {/* FORMULÁRIO DE COLAR LINK DIRETO */}
-                  <form
-                    onSubmit={handleManualSave}
-                    className={styles.manualForm}>
-                    <h4>Guardar Link Encontrado na Minha Caixa</h4>
-                    <div className={styles.manualRow}>
-                      <input
-                        type="text"
-                        placeholder="Título da dica (ex.: Melhores praias de Paraty)"
-                        value={manualTitle}
-                        onChange={(e) => setManualTitle(e.target.value)}
-                        className={styles.manualInput}
-                      />
-                      <input
-                        type="url"
-                        placeholder="Cole o link aqui (https://...)"
-                        value={manualUrl}
-                        onChange={(e) => setManualUrl(e.target.value)}
-                        className={styles.manualInputUrl}
-                      />
-                      <button
-                        type="submit"
-                        className={styles.manualSaveBtn}
-                        disabled={savingManual}>
-                        <BookmarkPlus size={16} />
-                        <span>
-                          {savingManual ? "Salvando..." : "Guardar na Caixa"}
-                        </span>
-                      </button>
-                    </div>
-                  </form>
+              {webList.length > 0 && (
+                <div className={styles.grid}>
+                  {webList.map((webItem) => {
+                    const saved = savedUrls.has(webItem.id || webItem.url || "");
+                    const thumbUrl = (webItem.raw as any)?.imageUrl as string | null | undefined;
+                    return (
+                      <div key={webItem.id} className={styles.card}>
+                        <div>
+                          {thumbUrl && <img src={thumbUrl} alt={webItem.title} className={styles.cardThumb} loading="lazy" />}
+                          <div className={styles.cardHeader}><span className={styles.sourceTag}>{webItem.source}</span></div>
+                          <h3 className={styles.cardTitle}>{webItem.title}</h3>
+                          <p className={styles.cardDesc}>{webItem.description}</p>
+                        </div>
+                        <div className={styles.cardActions}>
+                          <a href={webItem.url || "#"} target="_blank" rel="noopener noreferrer" className={styles.actionBtnPrimary}>
+                            <ExternalLink size={15} /><span>Ler guia completo</span>
+                          </a>
+                          <button type="button" className={saved ? styles.savedBtn : styles.saveBtn} onClick={() => saveToBox(webItem)} disabled={saved}>
+                            <BookmarkPlus size={16} /><span>{saved ? "Guardado" : "Guardar"}</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 
+              <div className={styles.aggregatorsBox}>
+                <span className={styles.aggregatorsTitle}>Mais formas de pesquisar sobre {fullDestinationForSearch}:</span>
+                <div className={styles.aggregatorsRow}>
+                  <a href={webFallback?.google || `https://www.google.com/search?q=${encodeURIComponent(`o que fazer em ${fullDestinationForSearch} dicas turismo roteiro`)}`} target="_blank" rel="noopener noreferrer" className={styles.aggregatorBtn}><ExternalLink size={14} /> 🔍 Pesquisar atrações no Google</a>
+                  <a href={webFallback?.brave || `https://search.brave.com/search?q=${encodeURIComponent(`o que fazer em ${fullDestinationForSearch} dicas turismo roteiro`)}`} target="_blank" rel="noopener noreferrer" className={styles.aggregatorBtn}><ExternalLink size={14} /> Pesquisar no Brave</a>
+                  <a href={webFallback?.duckduckgo || `https://duckduckgo.com/?q=${encodeURIComponent(`o que fazer em ${fullDestinationForSearch} dicas turismo`)}`} target="_blank" rel="noopener noreferrer" className={styles.aggregatorBtn}><ExternalLink size={14} /> 🦆 Guias no DuckDuckGo</a>
+                  <a href={webFallback?.youtube || `https://www.youtube.com/results?search_query=${encodeURIComponent(`roteiro viagem ${fullDestinationForSearch}`)}`} target="_blank" rel="noopener noreferrer" className={styles.aggregatorBtn}><ExternalLink size={14} /> ▶️ Roteiros e vlogs no YouTube</a>
+                  <a href={webFallback?.tripadvisor || `https://www.tripadvisor.com.br/Search?q=${encodeURIComponent(`atrações ${fullDestinationForSearch}`)}`} target="_blank" rel="noopener noreferrer" className={styles.aggregatorBtn}><ExternalLink size={14} /> 🧭 Avaliações no TripAdvisor</a>
+                </div>
+              </div>
+
+              <div className={styles.degradedBanner} style={{ marginTop: "1rem" }}>
+                <form onSubmit={handleManualSave} className={styles.manualForm}>
+                  <h4>Guardar um link de viagem</h4>
+                  <div className={styles.manualRow}>
+                    <input type="text" placeholder="Título da dica" value={manualTitle} onChange={(e) => setManualTitle(e.target.value)} className={styles.manualInput} />
+                    <input type="url" placeholder="Cole o link (https://...)" value={manualUrl} onChange={(e) => setManualUrl(e.target.value)} className={styles.manualInputUrl} />
+                    <button type="submit" className={styles.manualSaveBtn} disabled={savingManual}><BookmarkPlus size={16} /><span>{savingManual ? "Salvando..." : "Guardar na Caixa"}</span></button>
+                  </div>
+                </form>
+              </div>
               {/* RESULTADOS NORMAIS SE O BRAVE ESTIVER RETORNANDO */}
-              {webList.length > 0 && !isWebDegraded && (
+              {false && webList.length > 0 && !isWebDegraded && (
                 <div className={styles.grid}>
                   {webList.map((webItem) => {
                     const saved = savedUrls.has(
@@ -888,8 +870,11 @@ export function DiscoverClient({
                     );
                     return (
                       <div key={webItem.id} className={styles.card}>
+                        <div>
+                          {(webItem.raw as any)?.imageUrl && <img src={(webItem.raw as any).imageUrl} alt={webItem.title} className={styles.cardThumb} loading="lazy" />}
+                        </div>
                         <div className={styles.cardHeader}>
-                          <span className={styles.sourceTag}>Brave Web</span>
+                          <span className={styles.sourceTag}>{webItem.source}</span>
                         </div>
                         <h3 className={styles.cardTitle}>{webItem.title}</h3>
                         <p className={styles.cardDesc}>{webItem.description}</p>
@@ -900,7 +885,7 @@ export function DiscoverClient({
                             rel="noopener noreferrer"
                             className={styles.actionBtnPrimary}>
                             <ExternalLink size={15} />
-                            <span>Abrir Artigo</span>
+                            <span>{webItem.source.includes("Wikivoyage") ? "Ler guia completo" : "Abrir artigo"}</span>
                           </a>
                           <button
                             type="button"

@@ -253,14 +253,20 @@ export function getAirportAndHubInfo(destination: string): HubInfo {
 export async function resolveIata(input: string): Promise<string | null> {
   const local = extractIata(input);
   if (local) return local;
-  const term = cityName(input).split(",")[0].trim();
-  if (term.length < 2) return null;
+
+  // Search the selected city only, but never trust a fuzzy first result.
+  // Travelpayouts can return Bangkok (BKK) for "Macaé"; reject that mismatch.
+  const selectedCity = cityName(input).split(",")[0].trim();
+  if (selectedCity.length < 2) return null;
+
   try {
-    const url = `https://autocomplete.travelpayouts.com/places2?term=${encodeURIComponent(term)}&locale=pt&types[]=city&types[]=airport`;
+    const url = `https://autocomplete.travelpayouts.com/places2?term=${encodeURIComponent(selectedCity)}&locale=pt&types[]=city&types[]=airport`;
     const res = await fetch(url, { next: { revalidate: 86400 } });
     if (!res.ok) return null;
-    const data = (await res.json()) as { code?: string }[];
-    const code = data[0]?.code;
+    const data = (await res.json()) as { code?: string; name?: string; type?: string }[];
+    const norm = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+    const exact = data.find((item) => item.name && norm(item.name) === norm(selectedCity));
+    const code = exact?.code;
     return code && /^[A-Z]{3}$/.test(code) ? code : null;
   } catch {
     return null;

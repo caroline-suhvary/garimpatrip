@@ -135,6 +135,8 @@ async function geoapifyPlaces(
             lon: p.lon,
             map_url: `https://www.openstreetmap.org/?mlat=${p.lat}&mlon=${p.lon}#map=16/${p.lat}/${p.lon}`,
             booking_url: bookingSearchUrl,
+            website: p.website || null,
+            categories: p.categories || [],
           },
         };
       });
@@ -263,7 +265,7 @@ export async function searchFlights(
         id: `tp-${f.airline ?? "flight"}-${f.flight_number ?? i}-${dep ?? "any"}`,
         category: "flight",
         source_type: "api_partner",
-        source: "Travelpayouts",
+        source: "Encontrado em Aviasales",
         title: `${o} → ${d} (${f.airline ?? "Cia Aérea"})`,
         description: `${stops} • Ida: ${dep || "flexível"} | Volta: ${ret || "flexível"} • Preço histórico garimpado`,
         price: f.price ?? null,
@@ -444,101 +446,82 @@ export async function searchTours(
 // -----------------------------------------------------------------------------
 // TRANSPORTES & ROTAS TERRESTRES (Rome2Rio, ClickBus, DeÔnibus, Buser)
 // -----------------------------------------------------------------------------
+function transportMarket(place: string): "br" | "south-america" | "other" {
+  const value = place.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  if (/(brasil|brazil|,\s*br\b|,\s*brasil)/.test(value)) return "br";
+  const southAmericanCountries = [
+    "argentina", "bolivia", "chile", "colombia", "equador", "ecuador",
+    "guiana", "guyana", "paraguai", "paraguay", "peru", "suriname",
+    "uruguai", "uruguay", "venezuela",
+  ];
+  if (southAmericanCountries.some((country) => value.includes(country))) return "south-america";
+  // State abbreviations commonly present in Brazilian autocomplete labels.
+  if (/(,\s*(ac|al|ap|am|ba|ce|df|es|go|ma|mt|ms|mg|pa|pb|pr|pe|pi|rj|rn|rs|ro|rr|sc|sp|se|to)\b)/.test(value)) return "br";
+  return "other";
+}
+
 export async function searchTransport(
   destination: string,
   origin = "São Paulo",
 ): Promise<SearchResponse> {
+  const destinationFull = cityName(destination);
+  const originFull = cityName(origin);
   const cleanDest = cleanCity(destination);
   const cleanOrig = cleanCity(origin) || "São Paulo";
   const slugOrig = slugifyCity(cleanOrig);
   const slugDest = slugifyCity(cleanDest);
+  const market = transportMarket(destinationFull);
+  const routeQuery = encodeURIComponent(`${cleanOrig} para ${cleanDest}`);
 
-  // URLs verificadas e testadas
   const rome2rioUrl = `https://www.rome2rio.com/pt/map/${encodeURIComponent(cleanOrig)}/${encodeURIComponent(cleanDest)}?accom_comparison=true`;
-  const clickbusUrl = `https://www.clickbus.com.br/onibus/${slugOrig}-para-${slugDest}`;
-  const deonibusUrl = `https://deonibus.com/passagens-de-onibus/${slugOrig}-${slugDest}`;
-  const buserUrl = `https://www.buser.com.br/onibus/${slugOrig}-${slugDest}`;
-
   const transportCards: SearchResult[] = [
     {
       id: `transport-rome2rio-${slugOrig}-${slugDest}`,
       category: "transport",
       source_type: "manual",
       source: "Rome2Rio",
-      title: `Rotas Multimodais: ${cleanOrig} → ${cleanDest}`,
-      description:
-        "Veja conexões completas combinando ônibus, barco, trem, carro e transfer.",
-      price: null,
-      currency: "BRL",
-      url: rome2rioUrl,
+      title: `Rotas multimodais: ${cleanOrig} → ${cleanDest}`,
+      description: "Compare ônibus, trem, carro, barco e transfer entre as cidades.",
+      price: null, currency: "BRL", url: rome2rioUrl,
       raw: { type: "multimodal", provider: "Rome2Rio" },
-    },
-    {
-      id: `transport-clickbus-${slugOrig}-${slugDest}`,
-      category: "transport",
-      source_type: "manual",
-      source: "ClickBus",
-      title: `Passagens de Ônibus: ${cleanOrig} → ${cleanDest}`,
-      description:
-        "Compare horários e viações parceiras na ClickBus com rota preenchida.",
-      price: null,
-      currency: "BRL",
-      url: clickbusUrl,
-      raw: { type: "bus", provider: "ClickBus" },
-    },
-    {
-      id: `transport-deonibus-${slugOrig}-${slugDest}`,
-      category: "transport",
-      source_type: "manual",
-      source: "DeÔnibus",
-      title: `Passagens de Ônibus: ${cleanOrig} → ${cleanDest}`,
-      description: "Rotas intermunicipais e interestaduais na DeÔnibus.",
-      price: null,
-      currency: "BRL",
-      url: deonibusUrl,
-      raw: { type: "bus", provider: "DeÔnibus" },
-    },
-    {
-      id: `transport-buser-${slugOrig}-${slugDest}`,
-      category: "transport",
-      source_type: "manual",
-      source: "Buser",
-      title: `Viagens de Ônibus & Fretamento: ${cleanOrig} → ${cleanDest}`,
-      description: "Viagens colaborativas e linhas convencionais com desconto.",
-      price: null,
-      currency: "BRL",
-      url: buserUrl,
-      raw: { type: "bus", provider: "Buser" },
     },
   ];
 
-  // Adiciona opções de aluguel de carros se Geoapify estiver ativo
-  try {
-    const geoPlaces = await geoapifyPlaces(
-      cleanDest,
-      "rental.car",
-      "transport",
-      "Aluguel de Carros",
+  // Use provider route pages where available. Provider URLs may change; the button text
+  // includes the complete route so the traveler can confirm/edit it on the partner site.
+  if (market === "br") {
+    transportCards.push(
+      { id: `transport-clickbus-${slugOrig}-${slugDest}`, category: "transport", source_type: "manual", source: "ClickBus", title: `Ônibus: ${cleanOrig} → ${cleanDest}`, description: "Consulte disponibilidade e horários para este trecho na ClickBus.", price: null, currency: "BRL", url: `https://www.clickbus.com.br/onibus/${slugOrig}-para-${slugDest}`, raw: { type: "bus", route: routeQuery } },
+      { id: `transport-deonibus-${slugOrig}-${slugDest}`, category: "transport", source_type: "manual", source: "DeÔnibus", title: `Ônibus: ${cleanOrig} → ${cleanDest}`, description: "Consulte rotas intermunicipais e interestaduais na DeÔnibus.", price: null, currency: "BRL", url: `https://deonibus.com/passagens-de-onibus/${slugOrig}-${slugDest}`, raw: { type: "bus", route: routeQuery } },
+      { id: `transport-buser-${slugOrig}-${slugDest}`, category: "transport", source_type: "manual", source: "Buser", title: `Ônibus: ${cleanOrig} → ${cleanDest}`, description: "Consulte viagens disponíveis na Buser.", price: null, currency: "BRL", url: `https://www.buser.com.br/onibus/${slugOrig}-${slugDest}`, raw: { type: "bus", route: routeQuery } },
     );
-    return {
-      results: [...transportCards, ...(geoPlaces.results || [])],
-      fallbackUrls: {
-        rome2rio: rome2rioUrl,
-        clickbus: clickbusUrl,
-        deonibus: deonibusUrl,
-        buser: buserUrl,
-      },
-    };
+  } else if (market === "south-america") {
+    transportCards.push({ id: `transport-clickbus-${slugOrig}-${slugDest}`, category: "transport", source_type: "manual", source: "ClickBus", title: `Ônibus: ${cleanOrig} → ${cleanDest}`, description: "Consulte disponibilidade para este trecho na ClickBus.", price: null, currency: "BRL", url: `https://www.clickbus.com.br/onibus/${slugOrig}-para-${slugDest}`, raw: { type: "bus", route: routeQuery } });
+  }
+
+  transportCards.push(
+    { id: `transport-flixbus-${slugOrig}-${slugDest}`, category: "transport", source_type: "manual", source: "FlixBus", title: `Ônibus: ${cleanOrig} → ${cleanDest}`, description: "Pesquise esta rota na FlixBus; a disponibilidade depende do país e do trecho.", price: null, currency: "BRL", url: `https://www.google.com/search?q=${encodeURIComponent(`site:flixbus.com OR site:flixbus.com.br ${cleanOrig} ${cleanDest} bus`)}`, raw: { type: "bus", route: routeQuery } },
+    { id: `transport-omio-${slugOrig}-${slugDest}`, category: "transport", source_type: "manual", source: "Omio", title: `Ônibus e trens: ${cleanOrig} → ${cleanDest}`, description: "Pesquise ônibus e trens para este trecho na Omio.", price: null, currency: "BRL", url: `https://www.google.com/search?q=${encodeURIComponent(`site:omio.com OR site:omio.com.br ${cleanOrig} ${cleanDest} ônibus trem`)}`, raw: { type: "bus-train", route: routeQuery } },
+  );
+
+  try {
+    const geoPlaces = await geoapifyPlaces(destinationFull, "rental.car", "transport", "Aluguel de carros");
+    const rentalTerms = /rental\.car|rental_car|car_rental|car rental|rent a car|car hire|rental car|rentacar|aluguel de carro|aluguel de ve[ií]culo|locadora|locadora de ve[ií]culos|hertz|avis|localiza|movida|europcar|sixt|enterprise|budget/i;
+    const rentalCards = (geoPlaces.results || [])
+      .filter((item) => rentalTerms.test(`${item.title} ${item.description} ${JSON.stringify(item.raw || {})}`))
+      .map((item) => {
+        const query = encodeURIComponent(`${item.title} aluguel de carros ${destinationFull}`);
+        return {
+          ...item,
+          source: "Locadora de veículos",
+          url: item.url && !item.url.includes("booking.com")
+            ? item.url
+            : `https://www.google.com/maps/search/?api=1&query=${query}`,
+        };
+      });
+    return { results: [...transportCards, ...rentalCards], fallbackUrls: { rome2rio: rome2rioUrl } };
   } catch {
-    return {
-      results: transportCards,
-      fallbackUrls: {
-        rome2rio: rome2rioUrl,
-        clickbus: clickbusUrl,
-        deonibus: deonibusUrl,
-        buser: buserUrl,
-      },
-    };
+    return { results: transportCards, fallbackUrls: { rome2rio: rome2rioUrl } };
   }
 }
 
@@ -552,73 +535,59 @@ interface BraveResult {
 }
 
 export async function searchWeb(destination: string): Promise<SearchResponse> {
-  const clean = cleanCity ? cleanCity(destination) : destination;
-  const key = process.env.BRAVE_SEARCH_API_KEY;
-
+  const fullPlace = cityName(destination).trim();
+  const city = cleanCity(destination).trim();
+  const query = `o que fazer em ${fullPlace} dicas turismo roteiro`;
   const fallbackUrls = {
-    google: `https://www.google.com/search?q=${encodeURIComponent(`o que fazer em ${clean} dicas turismo roteiro`)}`,
-    brave: `https://search.brave.com/search?q=${encodeURIComponent(`o que fazer em ${clean} dicas turismo roteiro`)}`,
+    google: `https://www.google.com/search?q=${encodeURIComponent(query)}`,
+    brave: `https://search.brave.com/search?q=${encodeURIComponent(query)}`,
+    duckduckgo: `https://duckduckgo.com/?q=${encodeURIComponent(query)}`,
+    youtube: `https://www.youtube.com/results?search_query=${encodeURIComponent(`roteiro viagem ${fullPlace}`)}`,
+    tripadvisor: `https://www.tripadvisor.com.br/Search?q=${encodeURIComponent(`atrações ${fullPlace}`)}`,
   };
 
-  // Simulação de cota para testes em localhost (só ativa se for estritamente 'true')
-  if (process.env.BRAVE_SIMULATE_QUOTA === "true") {
-    return {
-      results: [],
-      notice:
-        "Garimpo Livre ativado (Simulação de Cota Esgotada): Pesquise diretamente nos motores abaixo e cole os links que encontrar na sua Caixa de Descobertas.",
-      degraded: true,
-      fallbackUrls,
-    };
+  // Brave is intentionally a localhost/development-only convenience, never production.
+  const key = process.env.BRAVE_SEARCH_API_KEY;
+  if (process.env.NODE_ENV !== "production" && key && process.env.BRAVE_SIMULATE_QUOTA !== "true") {
+    try {
+      const data = await getJson<{ web?: { results?: { title: string; url: string; description?: string }[] } }>(
+        `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&country=BR&search_lang=pt-br&count=8`,
+        { headers: { "X-Subscription-Token": key, Accept: "application/json" } },
+      );
+      const results = (data.web?.results ?? []).map<SearchResult>((item, index) => ({
+        id: `brave-${index}-${slugifyCity(fullPlace)}`,
+        category: "web", source_type: "web_result", source: "Brave Search (Local)",
+        title: item.title, description: item.description ?? "", price: null,
+        currency: "BRL", url: item.url, raw: item as unknown as Record<string, unknown>,
+      }));
+      return { results, fallbackUrls };
+    } catch (err: any) {
+      console.warn("Brave local indisponível; usando Wikivoyage:", err?.message || err);
+    }
   }
 
-  // Se não houver chave configurada no .env.local
-  if (!key) {
-    return {
-      results: [],
-      notice:
-        "Garimpo Livre ativado: Pesquise diretamente no Google ou Brave nos botões abaixo e guarde os links que encontrar na sua Caixa.",
-      degraded: true,
-      fallbackUrls,
-    };
-  }
-
-  const t0 = Date.now();
   try {
-    const q = `o que fazer em ${clean} dicas turismo roteiro`;
-    const data = await getJson<{
-      web?: {
-        results?: { title: string; url: string; description?: string }[];
-      };
-    }>(
-      `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(q)}&country=BR&search_lang=pt-br&count=10`,
-      { headers: { "X-Subscription-Token": key, Accept: "application/json" } },
-    );
-
-    const results = (data.web?.results ?? []).map<SearchResult>((r, i) => ({
-      id: `brave-${i}-${clean}`,
-      category: "web",
-      source_type: "web_result", // <-- troque "web_free" por "web_result"
-      source: "Brave Search",
-      title: r.title,
-      description: r.description ?? "",
-      price: null,
-      currency: "BRL",
-      url: r.url,
-      raw: r as unknown as Record<string, unknown>, // <-- cast para calar o aviso do raw
+    // City name is used for article matching; fullPlace remains in external searches.
+    const apiUrl = `https://pt.wikivoyage.org/w/api.php?action=query&format=json&generator=search&gsrsearch=${encodeURIComponent(city)}&gsrlimit=8&prop=extracts|pageimages|info&exintro=1&explaintext=1&exchars=420&piprop=thumbnail&pithumbsize=640&inprop=url`;
+    const data = await getJson<{ query?: { pages?: Record<string, { index?: number; title?: string; extract?: string; fullurl?: string; thumbnail?: { source?: string } }> } }>(apiUrl, {
+      headers: { "User-Agent": "GarimpaTrip/1.0 (https://garimpatrip.com.br)" },
+    });
+    const pages = Object.values(data.query?.pages ?? {}).sort((a, b) => (a.index ?? 999) - (b.index ?? 999));
+    const valid = pages.filter((page) => page.title && page.extract && page.extract.length > 20 && !/\(desambigua[cç][aã]o\)/i.test(page.title));
+    const results = valid.map<SearchResult>((page, index) => ({
+      id: `wikivoyage-${index}-${slugifyCity(page.title || city)}`,
+      category: "web", source_type: "web_result", source: "Wikivoyage",
+      title: page.title || fullPlace, description: page.extract || "", price: null,
+      currency: "BRL", url: page.fullurl || `https://pt.wikivoyage.org/wiki/${encodeURIComponent(page.title || city)}`,
+      raw: { imageUrl: page.thumbnail?.source || null, fullPlace },
     }));
-
-    return { results, fallbackUrls };
+    return { results, fallbackUrls, notice: results.length ? undefined : `Não encontramos um guia do Wikivoyage para ${fullPlace}. Use as buscas externas abaixo.` };
   } catch (err: any) {
-    console.error(">>> [Brave Search API Error]:", err?.message || err);
-    return {
-      results: [],
-      notice:
-        "Garimpo Livre ativado: Pesquise nos motores abaixo e cole o link na sua Caixa:",
-      degraded: true,
-      fallbackUrls,
-    };
+    console.error("Wikivoyage indisponível:", err?.message || err);
+    return { results: [], fallbackUrls, notice: "Não foi possível carregar o Wikivoyage agora. Use as opções de busca externa abaixo." };
   }
 }
+
 function wmoCondition(code: number): string {
   if (code === 0) return "Céu limpo";
   if (code <= 3) return "Parcialmente nublado";
