@@ -62,24 +62,101 @@ export interface GeoPoint {
   label: string;
 }
 
-export async function geocode(text: string): Promise<GeoPoint | null> {
+// export async function geocode(text: string): Promise<GeoPoint | null> {
+//   const key = process.env.GEOAPIFY_API_KEY;
+//   if (!key) return null;
+//   const clean = cleanCity(text);
+//   if (clean.length < 2) return null;
+
+//   try {
+//     const url = `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(clean)}&type=city&lang=pt&limit=1&apiKey=${key}`;
+//     const data = await getJson<{
+//       features?: {
+//         properties: { lat: number; lon: number; formatted?: string };
+//       }[];
+//     }>(url);
+//     const p = data.features?.[0]?.properties;
+//     return p ? { lat: p.lat, lon: p.lon, label: p.formatted ?? clean } : null;
+//   } catch {
+//     return null;
+//   }
+// }
+// async function geocode(text: string): Promise<GeoPoint | null> {
+//   const key = process.env.GEOAPIFY_API_KEY;
+//   const clean = cleanCity(text);
+//   if (clean.length < 2) return null;
+
+//   if (key) {
+//     try {
+//       const url = `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(clean)}&lang=pt&limit=1&apiKey=${key}`;
+//       const data = await getJson<{
+//         features?: {
+//           properties: { lat: number; lon: number; formatted?: string };
+//         }[];
+//       }>(url);
+//       const p = data.features?.[0]?.properties;
+//       if (p && p.lat && p.lon) {
+//         return { lat: p.lat, lon: p.lon, label: p.formatted ?? clean };
+//       }
+//     } catch {}
+//   }
+
+//   // Fallback Open-Meteo (garante coordenadas exatas para ilhas brasileiras)
+//   try {
+//     const omUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(clean)}&count=1&language=pt&format=json`;
+//     const omData = await getJson<{
+//       results?: Array<{ latitude: number; longitude: number; name: string; country?: string }>;
+//     }>(omUrl, { headers: { "User-Agent": "GarimpaTrip/1.0" } });
+//     const first = omData.results?.[0];
+//     if (first && first.latitude && first.longitude) {
+//       return { lat: first.latitude, lon: first.longitude, label: `${first.name}, ${first.country ?? ""}` };
+//     }
+//   } catch {}
+
+//   return null;
+// }
+async function geocode(text: string): Promise<GeoPoint | null> {
   const key = process.env.GEOAPIFY_API_KEY;
-  if (!key) return null;
   const clean = cleanCity(text);
   if (clean.length < 2) return null;
 
-  try {
-    const url = `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(clean)}&type=city&lang=pt&limit=1&apiKey=${key}`;
-    const data = await getJson<{
-      features?: {
-        properties: { lat: number; lon: number; formatted?: string };
-      }[];
-    }>(url);
-    const p = data.features?.[0]?.properties;
-    return p ? { lat: p.lat, lon: p.lon, label: p.formatted ?? clean } : null;
-  } catch {
-    return null;
+  if (key) {
+    try {
+      const url = `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(clean)}&lang=pt&limit=1&apiKey=${key}`;
+      const data = await getJson<{
+        features?: {
+          properties: { lat: number; lon: number; formatted?: string };
+        }[];
+      }>(url);
+      const p = data.features?.[0]?.properties;
+      if (p && p.lat && p.lon) {
+        return { lat: p.lat, lon: p.lon, label: p.formatted ?? clean };
+      }
+    } catch {}
   }
+
+  // Fallback Open-Meteo (garante coordenadas exatas para ilhas brasileiras)
+  try {
+    const omUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(clean)}&count=1&language=pt&format=json`;
+    const omData = await getJson<{
+      results?: Array<{
+        latitude: number;
+        longitude: number;
+        name: string;
+        country?: string;
+      }>;
+    }>(omUrl, { headers: { "User-Agent": "GarimpaTrip/1.0" } });
+    const first = omData.results?.[0];
+    if (first && first.latitude && first.longitude) {
+      return {
+        lat: first.latitude,
+        lon: first.longitude,
+        label: `${first.name}, ${first.country ?? ""}`,
+      };
+    }
+  } catch {}
+
+  return null;
 }
 
 interface GeoapifyPlace {
@@ -296,7 +373,7 @@ export async function searchFlights(
     const generalGoogleUrl = `https://www.google.com/travel/flights?q=Voos+de+${o}+para+${d}&hl=pt-BR&curr=BRL`;
     return {
       results,
-      fallbackUrls: { googleVoos: generalGoogleUrl },
+      fallbackUrls: { google: generalGoogleUrl },
       notice:
         results.length === 0
           ? `Nenhum voo encontrado no histórico da Travelpayouts para ${o} → ${d}. Você pode verificar diretamente no Google Voos.`
@@ -447,16 +524,37 @@ export async function searchTours(
 // TRANSPORTES & ROTAS TERRESTRES (Rome2Rio, ClickBus, DeÔnibus, Buser)
 // -----------------------------------------------------------------------------
 function transportMarket(place: string): "br" | "south-america" | "other" {
-  const value = place.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const value = place
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
   if (/(brasil|brazil|,\s*br\b|,\s*brasil)/.test(value)) return "br";
   const southAmericanCountries = [
-    "argentina", "bolivia", "chile", "colombia", "equador", "ecuador",
-    "guiana", "guyana", "paraguai", "paraguay", "peru", "suriname",
-    "uruguai", "uruguay", "venezuela",
+    "argentina",
+    "bolivia",
+    "chile",
+    "colombia",
+    "equador",
+    "ecuador",
+    "guiana",
+    "guyana",
+    "paraguai",
+    "paraguay",
+    "peru",
+    "suriname",
+    "uruguai",
+    "uruguay",
+    "venezuela",
   ];
-  if (southAmericanCountries.some((country) => value.includes(country))) return "south-america";
+  if (southAmericanCountries.some((country) => value.includes(country)))
+    return "south-america";
   // State abbreviations commonly present in Brazilian autocomplete labels.
-  if (/(,\s*(ac|al|ap|am|ba|ce|df|es|go|ma|mt|ms|mg|pa|pb|pr|pe|pi|rj|rn|rs|ro|rr|sc|sp|se|to)\b)/.test(value)) return "br";
+  if (
+    /(,\s*(ac|al|ap|am|ba|ce|df|es|go|ma|mt|ms|mg|pa|pb|pr|pe|pi|rj|rn|rs|ro|rr|sc|sp|se|to)\b)/.test(
+      value,
+    )
+  )
+    return "br";
   return "other";
 }
 
@@ -465,66 +563,157 @@ export async function searchTransport(
   origin = "São Paulo",
 ): Promise<SearchResponse> {
   const destinationFull = cityName(destination);
-  const originFull = cityName(origin);
   const cleanDest = cleanCity(destination);
   const cleanOrig = cleanCity(origin) || "São Paulo";
   const slugOrig = slugifyCity(cleanOrig);
   const slugDest = slugifyCity(cleanDest);
   const market = transportMarket(destinationFull);
-  const routeQuery = encodeURIComponent(`${cleanOrig} para ${cleanDest}`);
 
   const rome2rioUrl = `https://www.rome2rio.com/pt/map/${encodeURIComponent(cleanOrig)}/${encodeURIComponent(cleanDest)}?accom_comparison=true`;
-  const transportCards: SearchResult[] = [
-    {
-      id: `transport-rome2rio-${slugOrig}-${slugDest}`,
+
+  const transportCards: SearchResult[] = [];
+
+  // Verificação específica para Fernando de Noronha (ilha oceânica sem linhas de ônibus)
+  const normDest = destination
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  const isNoronha = /fernando\s+de\s+noronha|noronha\b|\bfen\b/.test(normDest);
+
+  if (isNoronha) {
+    transportCards.push({
+      id: `transport-bus-hub-${slugDest}`,
       category: "transport",
       source_type: "manual",
-      source: "Rome2Rio",
-      title: `Rotas multimodais: ${cleanOrig} → ${cleanDest}`,
-      description: "Compare ônibus, trem, carro, barco e transfer entre as cidades.",
-      price: null, currency: "BRL", url: rome2rioUrl,
-      raw: { type: "multimodal", provider: "Rome2Rio" },
-    },
-  ];
-
-  // Use provider route pages where available. Provider URLs may change; the button text
-  // includes the complete route so the traveler can confirm/edit it on the partner site.
-  if (market === "br") {
-    transportCards.push(
-      { id: `transport-clickbus-${slugOrig}-${slugDest}`, category: "transport", source_type: "manual", source: "ClickBus", title: `Ônibus: ${cleanOrig} → ${cleanDest}`, description: "Consulte disponibilidade e horários para este trecho na ClickBus.", price: null, currency: "BRL", url: `https://www.clickbus.com.br/onibus/${slugOrig}-para-${slugDest}`, raw: { type: "bus", route: routeQuery } },
-      { id: `transport-deonibus-${slugOrig}-${slugDest}`, category: "transport", source_type: "manual", source: "DeÔnibus", title: `Ônibus: ${cleanOrig} → ${cleanDest}`, description: "Consulte rotas intermunicipais e interestaduais na DeÔnibus.", price: null, currency: "BRL", url: `https://deonibus.com/passagens-de-onibus/${slugOrig}-${slugDest}`, raw: { type: "bus", route: routeQuery } },
-      { id: `transport-buser-${slugOrig}-${slugDest}`, category: "transport", source_type: "manual", source: "Buser", title: `Ônibus: ${cleanOrig} → ${cleanDest}`, description: "Consulte viagens disponíveis na Buser.", price: null, currency: "BRL", url: `https://www.buser.com.br/onibus/${slugOrig}-${slugDest}`, raw: { type: "bus", route: routeQuery } },
-    );
+      source: "Transporte Terrestre",
+      title: "Não há transporte de ônibus em Fernando de Noronha",
+      description:
+        "Fernando de Noronha é um arquipélago oceânico com acesso exclusivo por avião ou barco. Consulte as opções multimodais no Rome2Rio logo abaixo.",
+      price: null,
+      currency: "BRL",
+      url: rome2rioUrl,
+      raw: {
+        type: "bus_hub",
+        partnerLinks: [{ name: "Ver rotas no Rome2Rio", url: rome2rioUrl }],
+      },
+    });
+  } else if (market === "br") {
+    transportCards.push({
+      id: `transport-bus-hub-${slugOrig}-${slugDest}`,
+      category: "transport",
+      source_type: "manual",
+      source: "Passagens Rodoviárias",
+      title: `Pesquise passagens de ônibus de ${cleanOrig} para ${cleanDest}`,
+      description:
+        "Acesse as principais empresas e buscadores rodoviários para consultar horários e tarifas:",
+      price: null,
+      currency: "BRL",
+      url: "https://www.clickbus.com.br",
+      raw: {
+        type: "bus_hub",
+        partnerLinks: [
+          { name: "ClickBus", url: "https://www.clickbus.com.br" },
+          { name: "DeÔnibus", url: "https://deonibus.com" },
+          { name: "Buser", url: "https://www.buser.com.br" },
+          { name: "FlixBus", url: "https://www.flixbus.com.br" },
+        ],
+      },
+    });
   } else if (market === "south-america") {
-    transportCards.push({ id: `transport-clickbus-${slugOrig}-${slugDest}`, category: "transport", source_type: "manual", source: "ClickBus", title: `Ônibus: ${cleanOrig} → ${cleanDest}`, description: "Consulte disponibilidade para este trecho na ClickBus.", price: null, currency: "BRL", url: `https://www.clickbus.com.br/onibus/${slugOrig}-para-${slugDest}`, raw: { type: "bus", route: routeQuery } });
+    transportCards.push({
+      id: `transport-bus-hub-${slugOrig}-${slugDest}`,
+      category: "transport",
+      source_type: "manual",
+      source: "Passagens Rodoviárias",
+      title: `Pesquise passagens de ônibus de ${cleanOrig} para ${cleanDest}`,
+      description:
+        "Consulte rotas de ônibus disponíveis para viagens na América do Sul:",
+      price: null,
+      currency: "BRL",
+      url: "https://www.clickbus.com.br",
+      raw: {
+        type: "bus_hub",
+        partnerLinks: [
+          { name: "ClickBus", url: "https://www.clickbus.com.br" },
+          { name: "DeÔnibus", url: "https://deonibus.com" },
+          { name: "FlixBus", url: "https://www.flixbus.com.br" },
+        ],
+      },
+    });
+  } else {
+    // Fora da América do Sul (Europa, América do Norte, etc.)
+    transportCards.push({
+      id: `transport-bus-hub-${slugDest}`,
+      category: "transport",
+      source_type: "manual",
+      source: "Ônibus & Trens",
+      title: `Pesquise viagens intermunicipais saindo de ${cleanDest}`,
+      description:
+        "Consulte conexões de ônibus e trens para circular entre cidades no seu destino:",
+      price: null,
+      currency: "BRL",
+      url: "https://global.flixbus.com",
+      raw: {
+        type: "bus_hub",
+        partnerLinks: [
+          { name: "FlixBus", url: "https://global.flixbus.com" },
+          { name: "Omio", url: "https://www.omio.com.br" },
+        ],
+      },
+    });
   }
 
-  transportCards.push(
-    { id: `transport-flixbus-${slugOrig}-${slugDest}`, category: "transport", source_type: "manual", source: "FlixBus", title: `Ônibus: ${cleanOrig} → ${cleanDest}`, description: "Pesquise esta rota na FlixBus; a disponibilidade depende do país e do trecho.", price: null, currency: "BRL", url: `https://www.google.com/search?q=${encodeURIComponent(`site:flixbus.com OR site:flixbus.com.br ${cleanOrig} ${cleanDest} bus`)}`, raw: { type: "bus", route: routeQuery } },
-    { id: `transport-omio-${slugOrig}-${slugDest}`, category: "transport", source_type: "manual", source: "Omio", title: `Ônibus e trens: ${cleanOrig} → ${cleanDest}`, description: "Pesquise ônibus e trens para este trecho na Omio.", price: null, currency: "BRL", url: `https://www.google.com/search?q=${encodeURIComponent(`site:omio.com OR site:omio.com.br ${cleanOrig} ${cleanDest} ônibus trem`)}`, raw: { type: "bus-train", route: routeQuery } },
-  );
+  // Card do Rome2Rio (multimodal específico com origem e destino carregados)
+  transportCards.push({
+    id: `transport-rome2rio-${slugOrig}-${slugDest}`,
+    category: "transport",
+    source_type: "manual",
+    source: "Rome2Rio",
+    title: `Rotas multimodais: ${cleanOrig} → ${cleanDest}`,
+    description:
+      "Compare conexões aéreas, terrestres e marítimas com mapa e detalhes dos trechos.",
+    price: null,
+    currency: "BRL",
+    url: rome2rioUrl,
+    raw: { type: "multimodal", provider: "Rome2Rio" },
+  });
 
   try {
-    const geoPlaces = await geoapifyPlaces(destinationFull, "rental.car", "transport", "Aluguel de carros");
-    const rentalTerms = /rental\.car|rental_car|car_rental|car rental|rent a car|car hire|rental car|rentacar|aluguel de carro|aluguel de ve[ií]culo|locadora|locadora de ve[ií]culos|hertz|avis|localiza|movida|europcar|sixt|enterprise|budget/i;
+    const geoPlaces = await geoapifyPlaces(
+      destinationFull,
+      "rental.car",
+      "transport",
+      "Aluguel de carros",
+    );
+    const rentalTerms =
+      /rental\.car|rental_car|car_rental|car rental|rent a car|car hire|rental car|rentacar|aluguel de carro|aluguel de ve[ií]culo|locadora|locadora de ve[ií]culos|hertz|avis|localiza|movida|europcar|sixt|enterprise|budget/i;
     const rentalCards = (geoPlaces.results || [])
-      .filter((item) => rentalTerms.test(`${item.title} ${item.description} ${JSON.stringify(item.raw || {})}`))
+      .filter((item) =>
+        rentalTerms.test(
+          `${item.title} ${item.description} ${JSON.stringify(item.raw || {})}`,
+        ),
+      )
       .map((item) => {
-        const query = encodeURIComponent(`${item.title} aluguel de carros ${destinationFull}`);
+        const query = encodeURIComponent(
+          `${item.title} aluguel de carros ${destinationFull}`,
+        );
         return {
           ...item,
           source: "Locadora de veículos",
-          url: item.url && !item.url.includes("booking.com")
-            ? item.url
-            : `https://www.google.com/maps/search/?api=1&query=${query}`,
+          url:
+            item.url && !item.url.includes("booking.com")
+              ? item.url
+              : `https://www.google.com/maps/search/?api=1&query=${query}`,
         };
       });
-    return { results: [...transportCards, ...rentalCards], fallbackUrls: { rome2rio: rome2rioUrl } };
+    return {
+      results: [...transportCards, ...rentalCards],
+      fallbackUrls: { rome2rio: rome2rioUrl },
+    };
   } catch {
     return { results: transportCards, fallbackUrls: { rome2rio: rome2rioUrl } };
   }
 }
-
 // -----------------------------------------------------------------------------
 // WEB / GARIMPO LIVRE (Brave Search com Quota e Simulação)
 // -----------------------------------------------------------------------------
@@ -546,48 +735,190 @@ export async function searchWeb(destination: string): Promise<SearchResponse> {
     tripadvisor: `https://www.tripadvisor.com.br/Search?q=${encodeURIComponent(`atrações ${fullPlace}`)}`,
   };
 
-  // Brave is intentionally a localhost/development-only convenience, never production.
-  const key = process.env.BRAVE_SEARCH_API_KEY;
-  if (process.env.NODE_ENV !== "production" && key && process.env.BRAVE_SIMULATE_QUOTA !== "true") {
-    try {
-      const data = await getJson<{ web?: { results?: { title: string; url: string; description?: string }[] } }>(
-        `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&country=BR&search_lang=pt-br&count=8`,
-        { headers: { "X-Subscription-Token": key, Accept: "application/json" } },
+  const results: SearchResult[] = [];
+
+  // 1. Sempre busca guias no Wikivoyage (com fallback para Wikipedia)
+  try {
+    const wikiExactUrl = `https://pt.wikivoyage.org/w/api.php?action=query&format=json&titles=${encodeURIComponent(city)}&prop=extracts|pageimages|info&exintro=1&explaintext=1&exchars=450&piprop=thumbnail&pithumbsize=640&inprop=url`;
+    const exactData = await getJson<{
+      query?: {
+        pages?: Record<
+          string,
+          {
+            pageid?: number;
+            title?: string;
+            extract?: string;
+            canonicalurl?: string;
+            fullurl?: string;
+            thumbnail?: { source?: string };
+          }
+        >;
+      };
+    }>(wikiExactUrl, {
+      headers: { "User-Agent": "GarimpaTrip/1.0 (contato@garimpatrip.com.br)" },
+      next: { revalidate: 86400 },
+    });
+    const pages = exactData.query?.pages ?? {};
+    let foundGuide = false;
+    for (const [pid, p] of Object.entries(pages)) {
+      if (pid !== "-1" && p.extract && p.extract.trim().length > 30) {
+        results.push({
+          id: `wiki-${p.pageid || pid}`,
+          category: "web",
+          source_type: "web_result",
+          source: "Wikivoyage",
+          title: `Guia de Viagem: ${p.title || city}`,
+          description: p.extract.replace(/\s+/g, " ").trim(),
+          price: null,
+          currency: "BRL",
+          url:
+            p.canonicalurl ||
+            p.fullurl ||
+            `https://pt.wikivoyage.org/wiki/${encodeURIComponent(city)}`,
+          raw: { imageUrl: p.thumbnail?.source || null, wiki: true },
+        });
+        foundGuide = true;
+      }
+    }
+
+    if (!foundGuide) {
+      const wikiSearchUrl = `https://pt.wikivoyage.org/w/api.php?action=query&format=json&generator=search&gsrsearch=${encodeURIComponent(city)}&gsrlimit=4&prop=extracts|pageimages|info&exintro=1&explaintext=1&exchars=350&piprop=thumbnail&pithumbsize=640&inprop=url`;
+      const searchData = await getJson<{
+        query?: {
+          pages?: Record<
+            string,
+            {
+              pageid?: number;
+              index?: number;
+              title?: string;
+              extract?: string;
+              canonicalurl?: string;
+              fullurl?: string;
+              thumbnail?: { source?: string };
+            }
+          >;
+        };
+      }>(wikiSearchUrl, {
+        headers: {
+          "User-Agent": "GarimpaTrip/1.0 (contato@garimpatrip.com.br)",
+        },
+        next: { revalidate: 86400 },
+      });
+      const searchPages = Object.values(searchData.query?.pages ?? {}).sort(
+        (a, b) => (a.index ?? 99) - (b.index ?? 99),
       );
-      const results = (data.web?.results ?? []).map<SearchResult>((item, index) => ({
-        id: `brave-${index}-${slugifyCity(fullPlace)}`,
-        category: "web", source_type: "web_result", source: "Brave Search (Local)",
-        title: item.title, description: item.description ?? "", price: null,
-        currency: "BRL", url: item.url, raw: item as unknown as Record<string, unknown>,
-      }));
-      return { results, fallbackUrls };
+      for (const p of searchPages) {
+        if (p.extract && p.extract.trim().length > 30) {
+          results.push({
+            id: `wiki-${p.pageid || p.title}`,
+            category: "web",
+            source_type: "web_result",
+            source: "Wikivoyage",
+            title: p.title || city,
+            description: p.extract.replace(/\s+/g, " ").trim(),
+            price: null,
+            currency: "BRL",
+            url:
+              p.canonicalurl ||
+              p.fullurl ||
+              `https://pt.wikivoyage.org/wiki/${encodeURIComponent(p.title || city)}`,
+            raw: { imageUrl: p.thumbnail?.source || null, wiki: true },
+          });
+          foundGuide = true;
+        }
+      }
+    }
+
+    if (!foundGuide) {
+      const wpUrl = `https://pt.wikipedia.org/w/api.php?action=query&format=json&titles=${encodeURIComponent(city)}&prop=extracts|pageimages|info&exintro=1&explaintext=1&exchars=420&piprop=thumbnail&pithumbsize=640&inprop=url`;
+      const wpData = await getJson<{
+        query?: {
+          pages?: Record<
+            string,
+            {
+              pageid?: number;
+              title?: string;
+              extract?: string;
+              canonicalurl?: string;
+              fullurl?: string;
+              thumbnail?: { source?: string };
+            }
+          >;
+        };
+      }>(wpUrl, {
+        headers: {
+          "User-Agent": "GarimpaTrip/1.0 (contato@garimpatrip.com.br)",
+        },
+        next: { revalidate: 86400 },
+      });
+      for (const [pid, p] of Object.entries(wpData.query?.pages ?? {})) {
+        if (pid !== "-1" && p.extract && p.extract.trim().length > 30) {
+          results.push({
+            id: `wikipedia-${p.pageid || pid}`,
+            category: "web",
+            source_type: "web_result",
+            source: "Wikipedia",
+            title: `Sobre ${p.title || city}`,
+            description: p.extract.replace(/\s+/g, " ").trim(),
+            price: null,
+            currency: "BRL",
+            url:
+              p.canonicalurl ||
+              p.fullurl ||
+              `https://pt.wikipedia.org/wiki/${encodeURIComponent(city)}`,
+            raw: { imageUrl: p.thumbnail?.source || null, wiki: true },
+          });
+        }
+      }
+    }
+  } catch (err: any) {
+    console.warn("Consulta aos guias wiki falhou:", err?.message || err);
+  }
+
+  // 2. Brave Search: exclusivo de localhost e APENAS se ativado no .env.local via ENABLE_BRAVE_LOCAL=true
+  const isLocalBraveEnabled =
+    process.env.NODE_ENV !== "production" &&
+    process.env.ENABLE_BRAVE_LOCAL === "true" &&
+    Boolean(process.env.BRAVE_SEARCH_API_KEY) &&
+    process.env.BRAVE_SIMULATE_QUOTA !== "true";
+
+  if (isLocalBraveEnabled) {
+    try {
+      const data = await getJson<{
+        web?: {
+          results?: { title: string; url: string; description?: string }[];
+        };
+      }>(
+        `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&country=BR&search_lang=pt-br&count=8`,
+        {
+          headers: {
+            "X-Subscription-Token": process.env.BRAVE_SEARCH_API_KEY!,
+            Accept: "application/json",
+          },
+        },
+      );
+      const braveResults = (data.web?.results ?? []).map<SearchResult>(
+        (item, index) => ({
+          id: `brave-${index}-${slugifyCity(fullPlace)}`,
+          category: "web",
+          source_type: "web_result",
+          source: "Brave Search (Local)",
+          title: item.title,
+          description: item.description ?? "",
+          price: null,
+          currency: "BRL",
+          url: item.url,
+          raw: item as unknown as Record<string, unknown>,
+        }),
+      );
+      results.push(...braveResults);
     } catch (err: any) {
-      console.warn("Brave local indisponível; usando Wikivoyage:", err?.message || err);
+      console.warn("Brave local indisponível:", err?.message || err);
     }
   }
 
-  try {
-    // City name is used for article matching; fullPlace remains in external searches.
-    const apiUrl = `https://pt.wikivoyage.org/w/api.php?action=query&format=json&generator=search&gsrsearch=${encodeURIComponent(city)}&gsrlimit=8&prop=extracts|pageimages|info&exintro=1&explaintext=1&exchars=420&piprop=thumbnail&pithumbsize=640&inprop=url`;
-    const data = await getJson<{ query?: { pages?: Record<string, { index?: number; title?: string; extract?: string; fullurl?: string; thumbnail?: { source?: string } }> } }>(apiUrl, {
-      headers: { "User-Agent": "GarimpaTrip/1.0 (https://garimpatrip.com.br)" },
-    });
-    const pages = Object.values(data.query?.pages ?? {}).sort((a, b) => (a.index ?? 999) - (b.index ?? 999));
-    const valid = pages.filter((page) => page.title && page.extract && page.extract.length > 20 && !/\(desambigua[cç][aã]o\)/i.test(page.title));
-    const results = valid.map<SearchResult>((page, index) => ({
-      id: `wikivoyage-${index}-${slugifyCity(page.title || city)}`,
-      category: "web", source_type: "web_result", source: "Wikivoyage",
-      title: page.title || fullPlace, description: page.extract || "", price: null,
-      currency: "BRL", url: page.fullurl || `https://pt.wikivoyage.org/wiki/${encodeURIComponent(page.title || city)}`,
-      raw: { imageUrl: page.thumbnail?.source || null, fullPlace },
-    }));
-    return { results, fallbackUrls, notice: results.length ? undefined : `Não encontramos um guia do Wikivoyage para ${fullPlace}. Use as buscas externas abaixo.` };
-  } catch (err: any) {
-    console.error("Wikivoyage indisponível:", err?.message || err);
-    return { results: [], fallbackUrls, notice: "Não foi possível carregar o Wikivoyage agora. Use as opções de busca externa abaixo." };
-  }
+  return { results, fallbackUrls };
 }
-
 function wmoCondition(code: number): string {
   if (code === 0) return "Céu limpo";
   if (code <= 3) return "Parcialmente nublado";

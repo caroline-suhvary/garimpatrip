@@ -1,5 +1,10 @@
 export const LOCAL_IATA: Record<string, string> = {
   "sao paulo": "SAO",
+  jericoacoara: "JJD",
+  "jijoca de jericoacoara": "JJD",
+
+  "fernando de noronha": "FEN",
+  noronha: "FEN",
   "rio de janeiro": "RIO",
   salvador: "SSA",
   recife: "REC",
@@ -44,8 +49,11 @@ export function normalizeText(s: string): string {
     .trim();
 }
 
+// export function cityName(input: string): string {
+//   return input.replace(/\([A-Za-z]{3}\)\s*$/, "").trim();
+// }
 export function cityName(input: string): string {
-  return input.replace(/\([A-Za-z]{3}\)\s*$/, "").trim();
+  return input.replace(/\s*\([^)]*\)/g, "").trim();
 }
 
 export function extractIata(input: string): string | null {
@@ -263,20 +271,37 @@ export async function resolveIata(input: string): Promise<string | null> {
     const url = `https://autocomplete.travelpayouts.com/places2?term=${encodeURIComponent(selectedCity)}&locale=pt&types[]=city&types[]=airport`;
     const res = await fetch(url, { next: { revalidate: 86400 } });
     if (!res.ok) return null;
-    const data = (await res.json()) as { code?: string; name?: string; type?: string }[];
-    const norm = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-    const exact = data.find((item) => item.name && norm(item.name) === norm(selectedCity));
+    const data = (await res.json()) as {
+      code?: string;
+      name?: string;
+      type?: string;
+    }[];
+    const norm = (value: string) =>
+      value
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .trim();
+    const exact = data.find(
+      (item) => item.name && norm(item.name) === norm(selectedCity),
+    );
     const code = exact?.code;
     return code && /^[A-Z]{3}$/.test(code) ? code : null;
   } catch {
     return null;
   }
 }
+// export function cleanCity(input: string): string {
+//   if (!input) return "";
+//   let val = input.replace(/\([A-Za-z]{3}\)\s*$/, "").trim();
+//   if (val.includes(",")) val = val.split(",")[0].trim();
+//   return val;
+// }
 export function cleanCity(input: string): string {
   if (!input) return "";
-  let val = input.replace(/\([A-Za-z]{3}\)\s*$/, "").trim();
+  let val = input.replace(/\s*\([^)]*\)/g, "").trim();
   if (val.includes(",")) val = val.split(",")[0].trim();
-  return val;
+  return val.replace(/\s*\([^)]*\)/g, "").trim();
 }
 
 export function slugifyCity(input: string): string {

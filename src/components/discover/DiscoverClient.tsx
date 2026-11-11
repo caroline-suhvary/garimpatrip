@@ -576,6 +576,9 @@ export function DiscoverClient({
                 {transportList.map((item) => {
                   const saved = savedUrls.has(item.id || item.url || "");
                   const isRome2Rio = item.source === "Rome2Rio";
+                  const partnerLinks = (item.raw as any)?.partnerLinks as
+                    | { name: string; url: string }[]
+                    | undefined;
 
                   return (
                     <div
@@ -594,14 +597,41 @@ export function DiscoverClient({
                       <h3 className={styles.cardTitle}>{item.title}</h3>
                       <p className={styles.cardDesc}>{item.description}</p>
                       <div className={styles.cardActions}>
-                        <a
-                          href={item.url || "#"}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={styles.actionBtnPrimary}>
-                          <ExternalLink size={15} />
-                          <span>Pesquisar rota em {item.source}</span>
-                        </a>
+                        {partnerLinks && partnerLinks.length > 0 ? (
+                          <div
+                            className={styles.aggregatorsRow}
+                            style={{ width: "100%", marginBottom: "0.25rem" }}>
+                            {partnerLinks.map((p) => (
+                              <a
+                                key={p.name}
+                                href={p.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={styles.actionBtnPrimary}
+                                style={{
+                                  flex: "1 1 auto",
+                                  minWidth: "110px",
+                                  justifyContent: "center",
+                                }}>
+                                <ExternalLink size={14} />
+                                <span>{p.name}</span>
+                              </a>
+                            ))}
+                          </div>
+                        ) : (
+                          <a
+                            href={item.url || "#"}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={styles.actionBtnPrimary}>
+                            <ExternalLink size={15} />
+                            <span>
+                              {isRome2Rio
+                                ? "Ver Rotas no Rome2Rio"
+                                : `Acessar ${item.source}`}
+                            </span>
+                          </a>
+                        )}
                         <button
                           type="button"
                           className={saved ? styles.savedBtn : styles.saveBtn}

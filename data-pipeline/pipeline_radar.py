@@ -10,7 +10,7 @@ O que este robô faz, nesta ordem:
      estação do ano, férias escolares e feriados nacionais (BrasilAPI).
   3. Para cada rota ATIVA (base + rotas com alertas), consulta a Travelpayouts
      uma única vez (deduplicação) e grava os preços em price_history.
-  4. Desativa alertas de usuários inativos há mais de 90 dias.
+  4. Desativa alertas de usuários inativos há mais de 60 dias.
   5. Apaga preços com mais de 2 anos (retenção móvel).
 
 Usa a API REST do Supabase com a chave service_role (somente nos Secrets do GitHub).
@@ -36,22 +36,28 @@ INACTIVITY_DAYS = 90
 
 # 15 ROTAS BASE ESTRATÉGICAS (Deduplicação de consumo de API)
 BASE_ROUTES = [
+    # 10 rotas com saída de São Paulo (GRU)
+    {"origin": "GRU", "destination": "CNF", "name": "São Paulo -> Belo Horizonte"},
+    {"origin": "GRU", "destination": "GIG", "name": "São Paulo -> Rio de Janeiro"},
+    {"origin": "GRU", "destination": "BSB", "name": "São Paulo -> Brasília"},
     {"origin": "GRU", "destination": "SSA", "name": "São Paulo -> Salvador"},
     {"origin": "GRU", "destination": "REC", "name": "São Paulo -> Recife"},
+    {"origin": "GRU", "destination": "MCZ", "name": "São Paulo -> Maceió"},
     {"origin": "GRU", "destination": "FOR", "name": "São Paulo -> Fortaleza"},
-    {"origin": "GRU", "destination": "GIG", "name": "São Paulo -> Rio de Janeiro"},
-    {"origin": "GRU", "destination": "FLN", "name": "São Paulo -> Florianópolis"},
-    {"origin": "GRU", "destination": "IGU", "name": "São Paulo -> Foz do Iguaçu"},
-    {"origin": "GRU", "destination": "EZE", "name": "São Paulo -> Buenos Aires"},
-    {"origin": "GRU", "destination": "SCL", "name": "São Paulo -> Santiago"},
+    {"origin": "GRU", "destination": "MCO", "name": "São Paulo -> Orlando"},
     {"origin": "GRU", "destination": "LIS", "name": "São Paulo -> Lisboa"},
+    {"origin": "GRU", "destination": "AMS", "name": "São Paulo -> Amsterdã"},
+
+    # 3 rotas com saída do Rio de Janeiro (GIG)
     {"origin": "GIG", "destination": "SSA", "name": "Rio de Janeiro -> Salvador"},
     {"origin": "GIG", "destination": "REC", "name": "Rio de Janeiro -> Recife"},
-    {"origin": "GIG", "destination": "FOR", "name": "Rio de Janeiro -> Fortaleza"},
-    {"origin": "BSB", "destination": "SSA", "name": "Brasília -> Salvador"},
-    {"origin": "CNF", "destination": "REC", "name": "Belo Horizonte -> Recife"},
-    {"origin": "POA", "destination": "GIG", "name": "Porto Alegre -> Rio de Janeiro"},
+    {"origin": "GIG", "destination": "LIS", "name": "Rio de Janeiro -> Lisboa"},
+
+    # 2 rotas com saída de Campinas (VCP - Hub Azul)
+    {"origin": "VCP", "destination": "REC", "name": "Campinas -> Recife"},
+    {"origin": "VCP", "destination": "MCO", "name": "Campinas -> Orlando"},
 ]
+
 
 
 # ------------------------------------------------------------------ SUPABASE
