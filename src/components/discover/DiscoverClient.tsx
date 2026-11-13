@@ -91,9 +91,11 @@ export function DiscoverClient({
         if (age < 3600 * 1000 && parsed.data) {
           setOrigin(parsed.origin || "");
           setDestination(parsed.destination || "");
+          setMonth(parsed.month || "");
           setSearched({
             origin: parsed.origin || "",
             destination: parsed.destination || "",
+            month: parsed.month || "",
           });
           setData(parsed.data);
         }

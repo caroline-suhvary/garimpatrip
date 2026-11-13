@@ -1,21 +1,34 @@
 // Tipos compartilhados entre telas, rotas de API e banco de dados.
 
 export type CategoryId =
-  | 'flight'
-  | 'hotel'
-  | 'transport'
-  | 'tour'
-  | 'food'
-  | 'doc'
-  | 'money'
-  | 'schedule'
-  | 'budget'
-  | 'checklist';
+  | "flight"
+  | "hotel"
+  | "transport"
+  | "tour"
+  | "food"
+  | "doc"
+  | "money"
+  | "schedule"
+  | "budget"
+  | "checklist"
+  | "guides";
 
-export type DiscoveryCategory = 'flight' | 'hotel' | 'tour' | 'transport' | 'doc' | 'food' | 'web_idea' | 'web';
-export type SourceType = 'api_partner' | 'web_result' | 'manual';
-export type TripStatus = 'planejamento' | 'reservado' | 'concluido' | 'arquivado';
-export type PackageStatus = 'planejado' | 'reservado' | 'pago';
+export type DiscoveryCategory =
+  | "flight"
+  | "hotel"
+  | "tour"
+  | "transport"
+  | "doc"
+  | "food"
+  | "web_idea"
+  | "web";
+export type SourceType = "api_partner" | "web_result" | "manual";
+export type TripStatus =
+  | "planejamento"
+  | "reservado"
+  | "concluido"
+  | "arquivado";
+export type PackageStatus = "planejado" | "reservado" | "pago";
 
 export interface Profile {
   id: string;
@@ -134,7 +147,10 @@ export interface UserAlert {
   target_price: number;
   preferred_month: string | null;
   is_active: boolean;
-  monitored_routes?: Pick<MonitoredRoute, 'origin_iata' | 'destination_iata' | 'route_name'> | null;
+  monitored_routes?: Pick<
+    MonitoredRoute,
+    "origin_iata" | "destination_iata" | "route_name"
+  > | null;
 }
 
 /** Resultado padronizado que todas as rotas /api/discover/* devolvem. */
