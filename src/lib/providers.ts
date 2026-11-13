@@ -1,3 +1,19 @@
+// GT_CORRECOES_CONSOLIDADAS
+async function fetchWikiThumbnail(title: string): Promise<string | null> {
+  try {
+    const url = `https://pt.wikipedia.org/w/api.php?action=query&format=json&titles=${encodeURIComponent(title)}&prop=pageimages&pithumbsize=640&origin=*`;
+    const res = await getJson<{
+      query?: { pages?: Record<string, { thumbnail?: { source?: string } }> };
+    }>(url, {
+      headers: { "User-Agent": "GarimpaTrip/1.0 (contato@garimpatrip.com.br)" },
+      next: { revalidate: 86400 },
+    });
+    const pages = Object.values(res.query?.pages || {});
+    return pages[0]?.thumbnail?.source || null;
+  } catch {
+    return null;
+  }
+}
 import "server-only";
 import type {
   SearchResponse,
@@ -163,6 +179,8 @@ interface GeoapifyPlace {
   properties: {
     place_id: string;
     name?: string;
+    formatted?: string;
+    address_line1?: string;
     address_line2?: string;
     categories?: string[];
     website?: string;
@@ -193,25 +211,32 @@ async function geoapifyPlaces(
       .map<SearchResult>((f) => {
         const p = f.properties;
         const placeName = p.name ?? "";
+        const gmapsSearchUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${placeName} ${p.address_line2 || clean}`)}`;
         const bookingSearchUrl = `https://www.booking.com/searchresults.pt-br.html?ss=${encodeURIComponent(`${placeName} ${clean}`)}`;
+        const fallbackUrl =
+          category === "hotel" ? bookingSearchUrl : gmapsSearchUrl;
+
         return {
           id: `geo-${p.place_id}`,
           category,
           source_type: "api_partner",
-          source: "Geoapify Places",
+          source:
+            category === "transport"
+              ? "Locadora de veículos"
+              : "Geoapify Places",
           title: placeName,
           description:
             p.address_line2 ||
             (p.distance ? `${Math.round(p.distance)} m do centro` : label),
           price: null,
           currency: "BRL",
-          url: p.website || bookingSearchUrl,
+          url: p.website || fallbackUrl,
           raw: {
             place_id: p.place_id,
             lat: p.lat,
             lon: p.lon,
-            map_url: `https://www.openstreetmap.org/?mlat=${p.lat}&mlon=${p.lon}#map=16/${p.lat}/${p.lon}`,
-            booking_url: bookingSearchUrl,
+            map_url: gmapsSearchUrl,
+            booking_url: category === "hotel" ? bookingSearchUrl : null,
             website: p.website || null,
             categories: p.categories || [],
           },
@@ -559,26 +584,51 @@ function transportMarket(place: string): "br" | "south-america" | "other" {
 }
 
 // GT_PHASES_2_5_FERRY
-async function searchFerryTerminals(destination: string): Promise<SearchResult[]> {
+async function searchFerryTerminals(
+  destination: string,
+): Promise<SearchResult[]> {
   const point = await geocode(destination);
   if (!point) return [];
   const radius = 18000;
   const query = `[out:json][timeout:12];(node[amenity=ferry_terminal](around:${radius},${point.lat},${point.lon});way[amenity=ferry_terminal](around:${radius},${point.lat},${point.lon});relation[amenity=ferry_terminal](around:${radius},${point.lat},${point.lon});node[waterway=dock](around:${radius},${point.lat},${point.lon});way[waterway=dock](around:${radius},${point.lat},${point.lon});node[leisure=boat_rental](around:${radius},${point.lat},${point.lon}););out center tags 12;`;
   try {
-    const response = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`, {
-      headers: { "User-Agent": "GarimpaTrip/1.0 (contato@garimpatrip.com.br)" },
-      cache: "force-cache",
-      next: { revalidate: 86400 },
-    });
+    const response = await fetch(
+      `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`,
+      {
+        headers: {
+          "User-Agent": "GarimpaTrip/1.0 (contato@garimpatrip.com.br)",
+        },
+        cache: "force-cache",
+        next: { revalidate: 86400 },
+      },
+    );
     if (!response.ok) return [];
-    const data = await response.json() as { elements?: Array<{ id: number; type: string; lat?: number; lon?: number; center?: { lat: number; lon: number }; tags?: Record<string, string> }> };
+    const data = (await response.json()) as {
+      elements?: Array<{
+        id: number;
+        type: string;
+        lat?: number;
+        lon?: number;
+        center?: { lat: number; lon: number };
+        tags?: Record<string, string>;
+      }>;
+    };
     return (data.elements || []).slice(0, 8).map((element) => {
       const lat = element.lat ?? element.center?.lat;
       const lon = element.lon ?? element.center?.lon;
       const tags = element.tags || {};
-      const name = tags.name || tags["name:pt"] || "Terminal ou serviço náutico";
-      const kind = tags.amenity === "ferry_terminal" ? "Terminal de balsas" : tags.leisure === "boat_rental" ? "Aluguel de barcos" : "Doca / terminal náutico";
-      const mapUrl = lat != null && lon != null ? `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=16/${lat}/${lon}` : `https://www.openstreetmap.org/search?query=${encodeURIComponent(name + " " + destination)}`;
+      const name =
+        tags.name || tags["name:pt"] || "Terminal ou serviço náutico";
+      const kind =
+        tags.amenity === "ferry_terminal"
+          ? "Terminal de balsas"
+          : tags.leisure === "boat_rental"
+            ? "Aluguel de barcos"
+            : "Doca / terminal náutico";
+      const mapUrl =
+        lat != null && lon != null
+          ? `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=16/${lat}/${lon}`
+          : `https://www.openstreetmap.org/search?query=${encodeURIComponent(name + " " + destination)}`;
       return {
         id: `osm-nautical-${element.type}-${element.id}`,
         category: "transport" as const,
@@ -589,7 +639,14 @@ async function searchFerryTerminals(destination: string): Promise<SearchResult[]
         price: null,
         currency: "BRL",
         url: mapUrl,
-        raw: { type: "nautical", latitude: lat ?? null, longitude: lon ?? null, address: tags["addr:street"] || null, map_url: mapUrl, tags },
+        raw: {
+          type: "nautical",
+          latitude: lat ?? null,
+          longitude: lon ?? null,
+          address: tags["addr:street"] || null,
+          map_url: mapUrl,
+          tags,
+        },
       };
     });
   } catch {
@@ -609,27 +666,129 @@ export async function searchTransport(
   const market = transportMarket(destinationFull);
   const rome2rioUrl = `https://www.rome2rio.com/pt/map/${encodeURIComponent(cleanOrig)}/${encodeURIComponent(cleanDest)}?accom_comparison=true`;
   const transportCards: SearchResult[] = [];
-  const normDest = destination.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const normDest = destination
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
   const isNoronha = /fernando\s+de\s+noronha|noronha\b|\bfen\b/.test(normDest);
 
   if (isNoronha) {
-    transportCards.push({ id: `transport-bus-hub-${slugDest}`, category: "transport", source_type: "manual", source: "Transporte Terrestre", title: "Não há transporte de ônibus em Fernando de Noronha", description: "Fernando de Noronha é uma ilha. Consulte voos e opções náuticas locais; confirme disponibilidade diretamente com os operadores.", price: null, currency: "BRL", url: rome2rioUrl, raw: { type: "bus_hub", partnerLinks: [{ name: "Ver opções no Rome2Rio", url: rome2rioUrl }] } });
+    transportCards.push({
+      id: `transport-bus-hub-${slugDest}`,
+      category: "transport",
+      source_type: "manual",
+      source: "Transporte Terrestre",
+      title: "Não há transporte de ônibus em Fernando de Noronha",
+      description:
+        "Fernando de Noronha é uma ilha. Consulte voos e opções náuticas locais; confirme disponibilidade diretamente com os operadores.",
+      price: null,
+      currency: "BRL",
+      url: rome2rioUrl,
+      raw: {
+        type: "bus_hub",
+        partnerLinks: [{ name: "Ver opções no Rome2Rio", url: rome2rioUrl }],
+      },
+    });
   } else if (market === "br") {
-    transportCards.push({ id: `transport-bus-hub-${slugOrig}-${slugDest}`, category: "transport", source_type: "manual", source: "Passagens Rodoviárias", title: `Pesquise passagens de ônibus de ${cleanOrig} para ${cleanDest}`, description: "Consulte empresas e buscadores rodoviários; disponibilidade e horários variam por rota.", price: null, currency: "BRL", url: "https://www.clickbus.com.br", raw: { type: "bus_hub", partnerLinks: [{ name: "ClickBus", url: "https://www.clickbus.com.br" }, { name: "DeÔnibus", url: "https://deonibus.com" }, { name: "Buser", url: "https://www.buser.com.br" }, { name: "FlixBus", url: "https://www.flixbus.com.br" }] } });
+    transportCards.push({
+      id: `transport-bus-hub-${slugOrig}-${slugDest}`,
+      category: "transport",
+      source_type: "manual",
+      source: "Passagens Rodoviárias",
+      title: `Pesquise passagens de ônibus de ${cleanOrig} para ${cleanDest}`,
+      description:
+        "Consulte empresas e buscadores rodoviários; disponibilidade e horários variam por rota.",
+      price: null,
+      currency: "BRL",
+      url: "https://www.clickbus.com.br",
+      raw: {
+        type: "bus_hub",
+        partnerLinks: [
+          { name: "ClickBus", url: "https://www.clickbus.com.br" },
+          { name: "DeÔnibus", url: "https://deonibus.com" },
+          { name: "Buser", url: "https://www.buser.com.br" },
+          { name: "FlixBus", url: "https://www.flixbus.com.br" },
+        ],
+      },
+    });
   } else if (market === "south-america") {
-    transportCards.push({ id: `transport-bus-hub-${slugOrig}-${slugDest}`, category: "transport", source_type: "manual", source: "Passagens Rodoviárias", title: `Pesquise passagens de ônibus de ${cleanOrig} para ${cleanDest}`, description: "Consulte empresas e buscadores rodoviários para viagens na América do Sul.", price: null, currency: "BRL", url: "https://www.clickbus.com.br", raw: { type: "bus_hub", partnerLinks: [{ name: "ClickBus", url: "https://www.clickbus.com.br" }, { name: "DeÔnibus", url: "https://deonibus.com" }, { name: "FlixBus", url: "https://www.flixbus.com.br" }] } });
+    transportCards.push({
+      id: `transport-bus-hub-${slugOrig}-${slugDest}`,
+      category: "transport",
+      source_type: "manual",
+      source: "Passagens Rodoviárias",
+      title: `Pesquise passagens de ônibus de ${cleanOrig} para ${cleanDest}`,
+      description:
+        "Consulte empresas e buscadores rodoviários para viagens na América do Sul.",
+      price: null,
+      currency: "BRL",
+      url: "https://www.clickbus.com.br",
+      raw: {
+        type: "bus_hub",
+        partnerLinks: [
+          { name: "ClickBus", url: "https://www.clickbus.com.br" },
+          { name: "DeÔnibus", url: "https://deonibus.com" },
+          { name: "FlixBus", url: "https://www.flixbus.com.br" },
+        ],
+      },
+    });
   } else {
-    transportCards.push({ id: `transport-bus-hub-${slugDest}`, category: "transport", source_type: "manual", source: "Ônibus & Trens", title: `Pesquise viagens intermunicipais saindo de ${cleanDest}`, description: "Consulte conexões de ônibus e trem disponíveis no destino; os sites parceiros podem pedir que você informe a rota.", price: null, currency: "BRL", url: "https://global.flixbus.com", raw: { type: "bus_hub", partnerLinks: [{ name: "FlixBus", url: "https://global.flixbus.com" }, { name: "Omio", url: "https://www.omio.com.br" }] } });
+    transportCards.push({
+      id: `transport-bus-hub-${slugDest}`,
+      category: "transport",
+      source_type: "manual",
+      source: "Ônibus & Trens",
+      title: `Pesquise viagens intermunicipais saindo de ${cleanDest}`,
+      description:
+        "Consulte conexões de ônibus e trem disponíveis no destino; os sites parceiros podem pedir que você informe a rota.",
+      price: null,
+      currency: "BRL",
+      url: "https://global.flixbus.com",
+      raw: {
+        type: "bus_hub",
+        partnerLinks: [
+          { name: "FlixBus", url: "https://global.flixbus.com" },
+          { name: "Omio", url: "https://www.omio.com.br" },
+        ],
+      },
+    });
   }
 
-  transportCards.push({ id: `transport-rome2rio-${slugOrig}-${slugDest}`, category: "transport", source_type: "manual", source: "Rome2Rio", title: `Rotas multimodais: ${cleanOrig} → ${cleanDest}`, description: "Compare opções e conexões multimodais. Confira os detalhes diretamente com cada operador.", price: null, currency: "BRL", url: rome2rioUrl, raw: { type: "multimodal", provider: "Rome2Rio" } });
+  transportCards.push({
+    id: `transport-rome2rio-${slugOrig}-${slugDest}`,
+    category: "transport",
+    source_type: "manual",
+    source: "Rome2Rio",
+    title: `Rotas multimodais: ${cleanOrig} → ${cleanDest}`,
+    description:
+      "Compare opções e conexões multimodais. Confira os detalhes diretamente com cada operador.",
+    price: null,
+    currency: "BRL",
+    url: rome2rioUrl,
+    raw: { type: "multimodal", provider: "Rome2Rio" },
+  });
 
   try {
-    const geoPlaces = await geoapifyPlaces(destinationFull, "rental.car", "transport", "Aluguel de carros");
-    const rentalTerms = /rental\.car|rental_car|car_rental|car rental|rent a car|car hire|rental car|rentacar|aluguel de carro|aluguel de ve[ií]culo|locadora|locadora de ve[ií]culos|hertz|avis|localiza|movida|europcar|sixt|enterprise|budget/i;
-    const rentalCards = (geoPlaces.results || []).filter((item) => rentalTerms.test(`${item.title} ${item.description} ${JSON.stringify(item.raw || {})}`)).map((item) => ({ ...item, source: "Locadora de veículos" }));
+    const geoPlaces = await geoapifyPlaces(
+      destinationFull,
+      "rental.car",
+      "transport",
+      "Aluguel de carros",
+    );
+    const rentalTerms =
+      /rental\.car|rental_car|car_rental|car rental|rent a car|car hire|rental car|rentacar|aluguel de carro|aluguel de ve[ií]culo|locadora|locadora de ve[ií]culos|hertz|avis|localiza|movida|europcar|sixt|enterprise|budget/i;
+    const rentalCards = (geoPlaces.results || [])
+      .filter((item) =>
+        rentalTerms.test(
+          `${item.title} ${item.description} ${JSON.stringify(item.raw || {})}`,
+        ),
+      )
+      .map((item) => ({ ...item, source: "Locadora de veículos" }));
     const nauticalCards = await searchFerryTerminals(destinationFull);
-    return { results: [...transportCards, ...rentalCards, ...nauticalCards], fallbackUrls: { rome2rio: rome2rioUrl } };
+    return {
+      results: [...transportCards, ...rentalCards, ...nauticalCards],
+      fallbackUrls: { rome2rio: rome2rioUrl },
+    };
   } catch {
     return { results: transportCards, fallbackUrls: { rome2rio: rome2rioUrl } };
   }
@@ -637,7 +796,20 @@ export async function searchTransport(
 
 // GT_PHASES_2_5_WIKIVOYAGE
 function wikiHtmlToText(html: string): string {
-  return html.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#039;/g, "'").replace(/&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/\[editar\]/gi, " ").replace(/\s+/g, " ").trim();
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/\[editar\]/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 export async function searchWeb(destination: string): Promise<SearchResponse> {
@@ -655,53 +827,191 @@ export async function searchWeb(destination: string): Promise<SearchResponse> {
   const seen = new Set<string>();
   try {
     const searchUrl = `https://pt.wikivoyage.org/w/api.php?action=query&format=json&generator=search&gsrsearch=${encodeURIComponent(city)}&gsrlimit=6&prop=extracts|pageimages|info&exintro=1&explaintext=1&exchars=700&piprop=thumbnail&pithumbsize=640&inprop=url&origin=*`;
-    const data = await getJson<{ query?: { pages?: Record<string, { pageid?: number; index?: number; title?: string; extract?: string; canonicalurl?: string; fullurl?: string; thumbnail?: { source?: string } }> } }>(searchUrl, { headers: { "User-Agent": "GarimpaTrip/1.0 (contato@garimpatrip.com.br)" }, next: { revalidate: 86400 } });
-    const pages = Object.values(data.query?.pages || {}).sort((a, b) => (a.index ?? 99) - (b.index ?? 99));
+    const data = await getJson<{
+      query?: {
+        pages?: Record<
+          string,
+          {
+            pageid?: number;
+            index?: number;
+            title?: string;
+            extract?: string;
+            canonicalurl?: string;
+            fullurl?: string;
+            thumbnail?: { source?: string };
+          }
+        >;
+      };
+    }>(searchUrl, {
+      headers: { "User-Agent": "GarimpaTrip/1.0 (contato@garimpatrip.com.br)" },
+      next: { revalidate: 86400 },
+    });
+    const pages = Object.values(data.query?.pages || {}).sort(
+      (a, b) => (a.index ?? 99) - (b.index ?? 99),
+    );
     for (const page of pages) {
-      if (!page.extract || page.extract.trim().length < 30 || !page.pageid) continue;
+      if (!page.extract || page.extract.trim().length < 30 || !page.pageid)
+        continue;
       const pageTitle = page.title || city;
-      const pageUrl = page.canonicalurl || page.fullurl || `https://pt.wikivoyage.org/wiki/${encodeURIComponent(pageTitle)}`;
-      const exact = pageTitle.toLocaleLowerCase("pt-BR").includes(city.toLocaleLowerCase("pt-BR"));
+      const pageUrl =
+        page.canonicalurl ||
+        page.fullurl ||
+        `https://pt.wikivoyage.org/wiki/${encodeURIComponent(pageTitle)}`;
+      const exact = pageTitle
+        .toLocaleLowerCase("pt-BR")
+        .includes(city.toLocaleLowerCase("pt-BR"));
       if (!exact && pages.length > 1) continue;
-      results.push({ id: `wiki-${page.pageid}`, category: "web", source_type: "web_result", source: "Wikivoyage", title: `Guia de viagem: ${pageTitle}`, description: page.extract.replace(/\s+/g, " ").trim(), price: null, currency: "BRL", url: pageUrl, raw: { imageUrl: page.thumbnail?.source || null, wiki: true, place: fullPlace } });
+      results.push({
+        id: `wiki-${page.pageid}`,
+        category: "web",
+        source_type: "web_result",
+        source: "Wikivoyage",
+        title: `Guia de viagem: ${pageTitle}`,
+        description: page.extract.replace(/\s+/g, " ").trim(),
+        price: null,
+        currency: "BRL",
+        url: pageUrl,
+        raw: {
+          imageUrl: page.thumbnail?.source || null,
+          wiki: true,
+          place: fullPlace,
+        },
+      });
       seen.add(String(page.pageid));
       try {
         const sectionUrl = `https://pt.wikivoyage.org/w/api.php?action=parse&format=json&pageid=${page.pageid}&prop=sections&origin=*`;
-        const sectionData = await getJson<{ parse?: { sections?: Array<{ index: string; line: string; level: string }> } }>(sectionUrl, { headers: { "User-Agent": "GarimpaTrip/1.0 (contato@garimpatrip.com.br)" }, next: { revalidate: 86400 } });
-        const groups: Array<{ label: string; terms: RegExp; section: Array<{ index: string; line: string }> }> = [
-          { label: "Ver e conhecer", terms: /^(see|ver|atrações|atracoes|pontos turísticos|pontos turisticos|o que ver)/i, section: [] },
-          { label: "Fazer", terms: /^(do|fazer|atividades|praias|trilhas)/i, section: [] },
-          { label: "Comer", terms: /^(eat|comer|gastronomia|restaurantes)/i, section: [] },
-          { label: "Dormir", terms: /^(sleep|dormir|hospedagem|onde ficar)/i, section: [] },
+        const sectionData = await getJson<{
+          parse?: {
+            sections?: Array<{ index: string; line: string; level: string }>;
+          };
+        }>(sectionUrl, {
+          headers: {
+            "User-Agent": "GarimpaTrip/1.0 (contato@garimpatrip.com.br)",
+          },
+          next: { revalidate: 86400 },
+        });
+        const groups: Array<{
+          label: string;
+          terms: RegExp;
+          section: Array<{ index: string; line: string }>;
+        }> = [
+          {
+            label: "Ver e conhecer",
+            terms:
+              /^(see|ver|atrações|atracoes|pontos turísticos|pontos turisticos|o que ver)/i,
+            section: [],
+          },
+          {
+            label: "Fazer",
+            terms: /^(do|fazer|atividades|praias|trilhas)/i,
+            section: [],
+          },
+          {
+            label: "Comer",
+            terms: /^(eat|comer|gastronomia|restaurantes)/i,
+            section: [],
+          },
+          {
+            label: "Dormir",
+            terms: /^(sleep|dormir|hospedagem|onde ficar)/i,
+            section: [],
+          },
         ];
         for (const section of sectionData.parse?.sections || []) {
-          const group = groups.find((candidate) => candidate.terms.test(section.line.replace(/<[^>]+>/g, "").trim()));
-          if (group && group.section.length < 1) group.section.push({ index: section.index, line: section.line });
+          const group = groups.find((candidate) =>
+            candidate.terms.test(section.line.replace(/<[^>]+>/g, "").trim()),
+          );
+          if (group && group.section.length < 1)
+            group.section.push({ index: section.index, line: section.line });
         }
         for (const group of groups) {
           const selected = group.section[0];
           if (!selected) continue;
           try {
             const detailUrl = `https://pt.wikivoyage.org/w/api.php?action=parse&format=json&pageid=${page.pageid}&section=${encodeURIComponent(selected.index)}&prop=text&origin=*`;
-            const detail = await getJson<{ parse?: { text?: { "*"?: string } } }>(detailUrl, { headers: { "User-Agent": "GarimpaTrip/1.0 (contato@garimpatrip.com.br)" }, next: { revalidate: 86400 } });
-            const description = wikiHtmlToText(detail.parse?.text?.["*"] || "").slice(0, 700);
+            const detail = await getJson<{
+              parse?: { text?: { "*"?: string } };
+            }>(detailUrl, {
+              headers: {
+                "User-Agent": "GarimpaTrip/1.0 (contato@garimpatrip.com.br)",
+              },
+              next: { revalidate: 86400 },
+            });
+            const description = wikiHtmlToText(
+              detail.parse?.text?.["*"] || "",
+            ).slice(0, 700);
             if (description.length < 35) continue;
-            results.push({ id: `wiki-${page.pageid}-section-${selected.index}`, category: "web", source_type: "web_result", source: "Wikivoyage", title: `${group.label} em ${pageTitle}`, description, price: null, currency: "BRL", url: pageUrl, raw: { imageUrl: page.thumbnail?.source || null, wiki: true, section: group.label, place: fullPlace } });
-          } catch { /* Se uma seção falhar, o guia principal continua disponível. */ }
+            results.push({
+              id: `wiki-${page.pageid}-section-${selected.index}`,
+              category: "web",
+              source_type: "web_result",
+              source: "Wikivoyage",
+              title: `${group.label} em ${pageTitle}`,
+              description,
+              price: null,
+              currency: "BRL",
+              url: pageUrl,
+              raw: {
+                imageUrl: page.thumbnail?.source || null,
+                wiki: true,
+                section: group.label,
+                place: fullPlace,
+              },
+            });
+          } catch {
+            /* Se uma seção falhar, o guia principal continua disponível. */
+          }
         }
-      } catch { /* Seções são complementares: não removemos o guia principal. */ }
+      } catch {
+        /* Seções são complementares: não removemos o guia principal. */
+      }
     }
   } catch (err: unknown) {
-    console.warn("Consulta ao Wikivoyage falhou:", err instanceof Error ? err.message : err);
+    console.warn(
+      "Consulta ao Wikivoyage falhou:",
+      err instanceof Error ? err.message : err,
+    );
   }
   // Brave permanece exclusivamente local, mediante opt-in explícito.
-  const isLocalBraveEnabled = process.env.NODE_ENV !== "production" && process.env.ENABLE_BRAVE_LOCAL === "true" && Boolean(process.env.BRAVE_SEARCH_API_KEY) && process.env.BRAVE_SIMULATE_QUOTA !== "true";
+  const isLocalBraveEnabled =
+    process.env.NODE_ENV !== "production" &&
+    process.env.ENABLE_BRAVE_LOCAL === "true" &&
+    Boolean(process.env.BRAVE_SEARCH_API_KEY) &&
+    process.env.BRAVE_SIMULATE_QUOTA !== "true";
   if (isLocalBraveEnabled) {
     try {
-      const data = await getJson<{ web?: { results?: { title: string; url: string; description?: string }[] } }>(`https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&country=BR&search_lang=pt-br&count=8`, { headers: { "X-Subscription-Token": process.env.BRAVE_SEARCH_API_KEY!, Accept: "application/json" } });
-      (data.web?.results || []).forEach((item, index) => results.push({ id: `brave-${index}-${slugifyCity(fullPlace)}`, category: "web", source_type: "web_result", source: "Brave Search (Local)", title: item.title, description: item.description || "", price: null, currency: "BRL", url: item.url, raw: { ...item, place: fullPlace } }));
+      const data = await getJson<{
+        web?: {
+          results?: { title: string; url: string; description?: string }[];
+        };
+      }>(
+        `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&country=BR&search_lang=pt-br&count=8`,
+        {
+          headers: {
+            "X-Subscription-Token": process.env.BRAVE_SEARCH_API_KEY!,
+            Accept: "application/json",
+          },
+        },
+      );
+      (data.web?.results || []).forEach((item, index) =>
+        results.push({
+          id: `brave-${index}-${slugifyCity(fullPlace)}`,
+          category: "web",
+          source_type: "web_result",
+          source: "Brave Search (Local)",
+          title: item.title,
+          description: item.description || "",
+          price: null,
+          currency: "BRL",
+          url: item.url,
+          raw: { ...item, place: fullPlace },
+        }),
+      );
     } catch (err: unknown) {
-      console.warn("Brave local indisponível:", err instanceof Error ? err.message : err);
+      console.warn(
+        "Brave local indisponível:",
+        err instanceof Error ? err.message : err,
+      );
     }
   }
   return { results, fallbackUrls };

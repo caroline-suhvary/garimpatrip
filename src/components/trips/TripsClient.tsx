@@ -449,11 +449,8 @@ export function TripsClient() {
                   </div>
 
                   <div className={styles.tripActions}>
-                    <Link href={`/box?trip=${t.id}`} className="gt-btn gt-btn-light gt-btn-sm">
-                      <Sparkles size={14} /> Caixa de Descobertas
-                    </Link>
-                    <Link href={`/package?trip=${t.id}`} className="gt-btn gt-btn-light gt-btn-sm">
-                      <Briefcase size={14} /> Montar Pacote
+                    <Link href={`/package?trip=${t.id}`} className="gt-btn gt-btn-dark gt-btn-sm" style={{ fontWeight: 600 }}>
+                      <Briefcase size={14} /> Montar / Ver Pacote
                     </Link>
                     <span style={{ flex: 1 }} />
                     {dirty && (

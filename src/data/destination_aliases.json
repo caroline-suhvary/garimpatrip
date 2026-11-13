@@ -1,0 +1,96 @@
+[
+  {
+    "keywords": [
+      "disney",
+      "disney orlando",
+      "disney florida",
+      "disney flórida",
+      "walt disney world",
+      "magic kingdom",
+      "epcot"
+    ],
+    "name": "Orlando (Disney World)",
+    "subtitle": "Flórida, Estados Unidos",
+    "code": "US",
+    "label": "Orlando (Disney World), Flórida, Estados Unidos (MCO)",
+    "lat": 28.3772,
+    "lon": -81.5707
+  },
+  {
+    "keywords": [
+      "disneyland",
+      "disney california",
+      "disney califórnia",
+      "disneyland california"
+    ],
+    "name": "Anaheim (Disneyland)",
+    "subtitle": "Califórnia, Estados Unidos",
+    "code": "US",
+    "label": "Anaheim (Disneyland), Califórnia, Estados Unidos (LAX)",
+    "lat": 33.8121,
+    "lon": -117.919
+  },
+  {
+    "keywords": ["disney paris", "disneyland paris"],
+    "name": "Paris (Disneyland Paris)",
+    "subtitle": "Île-de-France, França",
+    "code": "FR",
+    "label": "Paris (Disneyland Paris), França (CDG)",
+    "lat": 48.8722,
+    "lon": 2.7758
+  },
+  {
+    "keywords": ["beto carrero", "beto carrero world"],
+    "name": "Penha (Beto Carrero World)",
+    "subtitle": "Santa Catarina, Brasil",
+    "code": "BR",
+    "label": "Penha (Beto Carrero World), Santa Catarina, Brasil (NVT)",
+    "lat": -26.8028,
+    "lon": -48.6186
+  },
+  {
+    "keywords": ["jalapao", "jalapão"],
+    "name": "Mateiros (Jalapão)",
+    "subtitle": "Tocantins, Brasil",
+    "code": "BR",
+    "label": "Mateiros (Jalapão), Tocantins, Brasil (PMW)",
+    "lat": -10.5486,
+    "lon": -46.4211
+  },
+  {
+    "keywords": ["lencois maranhenses", "lençóis maranhenses"],
+    "name": "Barreirinhas (Lençóis Maranhenses)",
+    "subtitle": "Maranhão, Brasil",
+    "code": "BR",
+    "label": "Barreirinhas (Lençóis Maranhenses), Maranhão, Brasil (SLZ)",
+    "lat": -2.7483,
+    "lon": -42.8258
+  },
+  {
+    "keywords": ["chapada diamantina"],
+    "name": "Lençóis (Chapada Diamantina)",
+    "subtitle": "Bahia, Brasil",
+    "code": "BR",
+    "label": "Lençóis (Chapada Diamantina), Bahia, Brasil (LEC)",
+    "lat": -12.5636,
+    "lon": -41.3897
+  },
+  {
+    "keywords": ["chapada dos veadeiros"],
+    "name": "Alto Paraíso (Chapada dos Veadeiros)",
+    "subtitle": "Goiás, Brasil",
+    "code": "BR",
+    "label": "Alto Paraíso (Chapada dos Veadeiros), Goiás, Brasil (BSB)",
+    "lat": -14.1311,
+    "lon": -47.5147
+  },
+  {
+    "keywords": ["machu picchu", "macchu picchu"],
+    "name": "Cusco (Machu Picchu)",
+    "subtitle": "Cusco, Peru",
+    "code": "PE",
+    "label": "Cusco (Machu Picchu), Peru (CUZ)",
+    "lat": -13.1631,
+    "lon": -72.545
+  }
+]

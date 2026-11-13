@@ -81,6 +81,26 @@ export function DiscoverClient({
     "all" | "flights" | "transport" | "hotels" | "tours" | "web"
   >("all");
   const [searching, setSearching] = useState(false);
+  // Restaura busca anterior do sessionStorage se tiver menos de 1 hora
+  useEffect(() => {
+    try {
+      const cached = sessionStorage.getItem("gt_discover_cache");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        const age = Date.now() - (parsed.timestamp || 0);
+        if (age < 3600 * 1000 && parsed.data) {
+          setOrigin(parsed.origin || "");
+          setDestination(parsed.destination || "");
+          setSearched({
+            origin: parsed.origin || "",
+            destination: parsed.destination || "",
+          });
+          setData(parsed.data);
+        }
+      }
+    } catch {}
+  }, []);
+
   const [searched, setSearched] = useState<{
     origin: string;
     destination: string;
@@ -162,7 +182,12 @@ export function DiscoverClient({
       });
     }
     setSearched({ origin, destination, month });
-    try { window.localStorage.setItem("garimpatrip:lastDiscoverSearch", JSON.stringify({ origin, destination, month, budget })); } catch {}
+    try {
+      window.localStorage.setItem(
+        "garimpatrip:lastDiscoverSearch",
+        JSON.stringify({ origin, destination, month, budget }),
+      );
+    } catch {}
     runSearch(origin, destination, month);
   };
 
@@ -172,23 +197,43 @@ export function DiscoverClient({
       const orig = initialOrigin || DEFAULT_ORIGIN;
       const dest = initialDestination;
       const m = initialMonth || "";
-      setOrigin(orig); setDestination(dest); setMonth(m);
+      setOrigin(orig);
+      setDestination(dest);
+      setMonth(m);
       if (initialBudget) setBudget(initialBudget);
       setSearched({ origin: orig, destination: dest, month: m });
-      try { window.localStorage.setItem("garimpatrip:lastDiscoverSearch", JSON.stringify({ origin: orig, destination: dest, month: m, budget: initialBudget || budget })); } catch {}
+      try {
+        window.localStorage.setItem(
+          "garimpatrip:lastDiscoverSearch",
+          JSON.stringify({
+            origin: orig,
+            destination: dest,
+            month: m,
+            budget: initialBudget || budget,
+          }),
+        );
+      } catch {}
       runSearch(orig, dest, m);
       return;
     }
     try {
-      const saved = JSON.parse(window.localStorage.getItem("garimpatrip:lastDiscoverSearch") || "null");
+      const saved = JSON.parse(
+        window.localStorage.getItem("garimpatrip:lastDiscoverSearch") || "null",
+      );
       if (saved?.destination) {
-        const orig = saved.origin || DEFAULT_ORIGIN; const dest = saved.destination; const m = saved.month || "";
-        setOrigin(orig); setDestination(dest); setMonth(m); if (saved.budget) setBudget(saved.budget);
-        setSearched({ origin: orig, destination: dest, month: m }); runSearch(orig, dest, m);
+        const orig = saved.origin || DEFAULT_ORIGIN;
+        const dest = saved.destination;
+        const m = saved.month || "";
+        setOrigin(orig);
+        setDestination(dest);
+        setMonth(m);
+        if (saved.budget) setBudget(saved.budget);
+        setSearched({ origin: orig, destination: dest, month: m });
+        runSearch(orig, dest, m);
       }
     } catch {}
-  // A restauração deve ocorrer apenas quando os parâmetros iniciais mudarem.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // A restauração deve ocorrer apenas quando os parâmetros iniciais mudarem.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialOrigin, initialDestination, initialMonth, initialBudget]);
 
   // Garante perfil antes de criar viagem
@@ -280,6 +325,7 @@ export function DiscoverClient({
     }
   };
 
+  // Mapeamento oficial para as 11 macrocategorias do GarimpaTrip
   const CATEGORY_MAP: Record<string, { id: number; name: string }> = {
     flight: { id: 1, name: "Transporte Principal" },
     transport: { id: 4, name: "Deslocamento Local" },
@@ -287,10 +333,33 @@ export function DiscoverClient({
     tour: { id: 3, name: "Passeios & Atrações" },
     doc: { id: 5, name: "Documentação & Saúde" },
     food: { id: 6, name: "Alimentação & Gastos" },
-    web: { id: 3, name: "Passeios & Guias" },
-    web_idea: { id: 3, name: "Passeios & Guias" },
+    web: { id: 11, name: "Dicas de Roteiro & Guias" },
+    web_idea: { id: 11, name: "Dicas de Roteiro & Guias" },
   };
 
+  // Sincroniza itens já salvos no pacote ativo para não permitir duplicatas
+  useEffect(() => {
+    if (!supabase || !user || !selectedId) return;
+    supabase
+      .from("package_items")
+      .select("title, external_url, meta_details")
+      .eq("trip_id", selectedId)
+      .then(({ data }) => {
+        if (data) {
+          const keys = new Set<string>();
+          data.forEach((row: any) => {
+            if (row.external_url) keys.add(row.external_url);
+            if (row.title) keys.add(row.title);
+            const raw = row.meta_details?.raw_payload;
+            if (raw?.place_id) keys.add(`geo-${raw.place_id}`);
+            if (raw?.xid) keys.add(`tour-${raw.xid}`);
+          });
+          setSavedUrls(keys);
+        }
+      });
+  }, [supabase, user, selectedId]);
+
+  // Salva no Pacote Oficial com extração automática de coordenadas e endereço
   const saveToPackage = async (item: SearchResult) => {
     if (!supabase || !user) return signIn();
     if (!selectedId) {
@@ -299,7 +368,41 @@ export function DiscoverClient({
         text: "Selecione ou crie uma viagem ativa para guardar itens no seu Roteiro.",
       });
     }
-    const catInfo = CATEGORY_MAP[item.category] || { id: 3, name: "Passeios & Atrações" };
+
+    const itemKey = item.id || item.url || item.title;
+    if (savedUrls.has(itemKey)) return;
+
+    const catInfo = CATEGORY_MAP[item.category] || {
+      id: 3,
+      name: "Passeios & Atrações",
+    };
+    const raw = (item.raw || {}) as any;
+
+    let lat: number | null = null;
+    let lon: number | null = null;
+    let address: string | null = null;
+    let placeId: string | null = null;
+
+    if (raw.lat != null && raw.lon != null) {
+      lat = Number(raw.lat);
+      lon = Number(raw.lon);
+    } else if (raw.latitude != null && raw.longitude != null) {
+      lat = Number(raw.latitude);
+      lon = Number(raw.longitude);
+    }
+
+    if (raw.address) {
+      address = String(raw.address).slice(0, 300);
+    } else if (raw.destination_iata) {
+      address = `Aeroporto de ${cleanDest} (${raw.destination_iata})`;
+    } else if (item.category === "hotel" || item.category === "tour") {
+      address = `${item.title}, ${cleanDest}`;
+    }
+
+    if (raw.place_id || raw.xid) {
+      placeId = String(raw.place_id || raw.xid).slice(0, 150);
+    }
+
     try {
       await ensureProfile();
       const { error } = await supabase.from("package_items").insert({
@@ -311,29 +414,33 @@ export function DiscoverClient({
         currency: item.currency || "BRL",
         external_url: item.url || null,
         notes: item.description ? item.description.slice(0, 500) : null,
+        address,
+        latitude: lat,
+        longitude: lon,
+        place_id: placeId,
         meta_details: {
           provider: item.source,
           category_code: item.category,
           source_type: item.source_type,
-          raw_payload: item.raw || {},
+          raw_payload: raw,
         },
       });
+
       if (error) throw error;
-      setSavedUrls((prev) => new Set(prev).add(item.id || item.url || ""));
+
+      setSavedUrls((prev) => new Set(prev).add(itemKey));
 
       setMessage({
         type: "ok",
-        text: `"${item.title.slice(0, 40)}" guardado em ${activeTripName} (${catInfo.name})!`,
+        text: `"${item.title.slice(0, 35)}" guardado em ${activeTrip?.title || "seu Roteiro"}!`,
       });
     } catch (err: any) {
       setMessage({
         type: "error",
-        text: err.message || "Erro ao guardar no Pacote.",
+        text: err.message || "Erro ao guardar no Roteiro.",
       });
     }
   };
-
-  const saveToBox = saveToPackage;
 
   const handleManualSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -349,13 +456,14 @@ export function DiscoverClient({
       source_type: "manual",
       source: "Garimpo Livre",
       title: manualTitle.trim(),
-      description: "Dica garimpada livremente na web.",
+      description: "Link salvo via Garimpo Livre",
       price: null,
       currency: "BRL",
       url: manualUrl.trim(),
+      raw: { address: null, notes: "Dica externa" },
     };
     setSavingManual(true);
-    await saveToBox(fakeItem);
+    await saveToPackage(fakeItem);
     setSavingManual(false);
     setManualTitle("");
     setManualUrl("");
@@ -376,8 +484,9 @@ export function DiscoverClient({
   const isWebDegraded = data?.web?.degraded;
   const webFallback = data?.web?.fallbackUrls;
 
-    const activeTrip = trips.find((t) => t.id === selectedId);
-  const activeTripName = activeTrip?.destination_city || activeTrip?.title || "Roteiro";
+  const activeTrip = trips.find((t) => t.id === selectedId);
+  const activeTripName =
+    activeTrip?.destination_city || activeTrip?.title || "Roteiro";
 
   const getSaveLabel = (saved: boolean) => {
     if (saved) return `Guardado em ${activeTripName}`;
@@ -415,15 +524,21 @@ export function DiscoverClient({
             </span>
           </button>
         </div>
-              {/* ALERTA CASO A BUSCA SEJA DIFERENTE DO ROTEIRO ATIVO */}
-        {Boolean(selectedId && activeTrip && cleanDest &&
+        {/* ALERTA CASO A BUSCA SEJA DIFERENTE DO ROTEIRO ATIVO */}
+        {Boolean(
+          selectedId &&
+          activeTrip &&
+          cleanDest &&
           !activeTripName.toLowerCase().includes(cleanDest.toLowerCase()) &&
-          !cleanDest.toLowerCase().includes(activeTripName.toLowerCase())) && (
+          !cleanDest.toLowerCase().includes(activeTripName.toLowerCase()),
+        ) && (
           <div className={styles.tripMismatchAlert}>
             <AlertCircle size={18} className={styles.tripMismatchIcon} />
             <div className={styles.tripMismatchText}>
-              <strong>Atenção ao Roteiro:</strong> Sua viagem ativa é <u>{activeTripName}</u>, mas você está pesquisando <u>{cleanDest}</u>.
-              Os itens que você guardar irão para o pacote de <strong>{activeTripName}</strong>.
+              <strong>Atenção ao Roteiro:</strong> Sua viagem ativa é{" "}
+              <u>{activeTripName}</u>, mas você está pesquisando{" "}
+              <u>{cleanDest}</u>. Os itens que você guardar irão para o pacote
+              de <strong>{activeTripName}</strong>.
             </div>
             <button
               type="button"
@@ -654,7 +769,7 @@ export function DiscoverClient({
                           <button
                             type="button"
                             className={saved ? styles.savedBtn : styles.saveBtn}
-                            onClick={() => saveToBox(flight)}
+                            onClick={() => saveToPackage(flight)}
                             disabled={saved}>
                             <BookmarkPlus size={16} />
                             <span>{getSaveLabel(saved)}</span>
@@ -742,7 +857,7 @@ export function DiscoverClient({
                         <button
                           type="button"
                           className={saved ? styles.savedBtn : styles.saveBtn}
-                          onClick={() => saveToBox(item)}
+                          onClick={() => saveToPackage(item)}
                           disabled={saved}>
                           <BookmarkPlus size={16} />
                           <span>{getSaveLabel(saved)}</span>
@@ -793,7 +908,9 @@ export function DiscoverClient({
                   return (
                     <div key={hotel.id} className={styles.card}>
                       <div className={styles.cardHeader}>
-                        <span className={styles.sourceTag}>Hospedagem</span>
+                        <span className={styles.sourceTag}>
+                          Encontrado em OpenStreetMap
+                        </span>
                       </div>
                       <h3 className={styles.cardTitle}>{hotel.title}</h3>
                       <p className={styles.cardDesc}>{hotel.description}</p>
@@ -819,7 +936,7 @@ export function DiscoverClient({
                         <button
                           type="button"
                           className={saved ? styles.savedBtn : styles.saveBtn}
-                          onClick={() => saveToBox(hotel)}
+                          onClick={() => saveToPackage(hotel)}
                           disabled={saved}>
                           <BookmarkPlus size={16} />
                           <span>{getSaveLabel(saved)}</span>
@@ -921,7 +1038,7 @@ export function DiscoverClient({
                         <button
                           type="button"
                           className={saved ? styles.savedBtn : styles.saveBtn}
-                          onClick={() => saveToBox(tour)}
+                          onClick={() => saveToPackage(tour)}
                           disabled={saved}>
                           <BookmarkPlus size={16} />
                           <span>{getSaveLabel(saved)}</span>
@@ -997,7 +1114,7 @@ export function DiscoverClient({
                           <button
                             type="button"
                             className={saved ? styles.savedBtn : styles.saveBtn}
-                            onClick={() => saveToBox(webItem)}
+                            onClick={() => saveToPackage(webItem)}
                             disabled={saved}>
                             <BookmarkPlus size={16} />
                             <span>{getSaveLabel(saved)}</span>
@@ -1093,7 +1210,9 @@ export function DiscoverClient({
                       disabled={savingManual}>
                       <BookmarkPlus size={16} />
                       <span>
-                        {savingManual ? "Salvando..." : `Guardar em ${activeTripName}`}
+                        {savingManual
+                          ? "Salvando..."
+                          : `Guardar em ${activeTripName}`}
                       </span>
                     </button>
                   </div>
@@ -1141,7 +1260,7 @@ export function DiscoverClient({
                           <button
                             type="button"
                             className={saved ? styles.savedBtn : styles.saveBtn}
-                            onClick={() => saveToBox(webItem)}
+                            onClick={() => saveToPackage(webItem)}
                             disabled={saved}>
                             <BookmarkPlus size={16} />
                             <span>{getSaveLabel(saved)}</span>

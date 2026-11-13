@@ -108,10 +108,20 @@ export const PACKAGE_CATEGORIES: CategoryStyle[] = [
     border: "var(--cat-checklist-border)",
     color: "var(--cat-checklist-text)",
   },
+  {
+    id: 11,
+    code: "guides",
+    title: "Dicas de Roteiro & Guias de Viagem",
+    description: "Links de blogs, vídeos, roteiros e guias do Wikivoyage.",
+    badge: "Wikivoyage & Web",
+    bg: "var(--cat-guides-bg)",
+    border: "var(--cat-guides-border)",
+    color: "var(--cat-guides-text)",
+  },
 ];
 
 /** Áreas que guardam itens com custo (8 = cronograma e 9 = orçamento são telas próprias). */
-export const ITEM_CATEGORY_IDS = [1, 2, 3, 4, 5, 6, 7, 10];
+export const ITEM_CATEGORY_IDS = [1, 2, 3, 4, 5, 6, 7, 10, 11];
 
 /** Para qual área do pacote cada tipo de descoberta vai por padrão. */
 export const DEFAULT_PACKAGE_CATEGORY: Record<DiscoveryCategory, number> = {
@@ -121,8 +131,8 @@ export const DEFAULT_PACKAGE_CATEGORY: Record<DiscoveryCategory, number> = {
   transport: 4,
   doc: 5,
   food: 6,
-  web_idea: 3,
-  web: 3,
+  web_idea: 11,
+  web: 11,
 };
 
 export function categoryById(id: number): CategoryStyle | undefined {
