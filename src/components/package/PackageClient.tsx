@@ -12,6 +12,7 @@ import { PackageItemRow } from '@/components/package/PackageItemRow';
 import { ScheduleArea } from '@/components/package/ScheduleArea';
 import { BudgetArea } from '@/components/package/BudgetArea';
 import { CurrencyRates } from '@/components/package/CurrencyRates';
+import { BoxClient } from '@/components/box/BoxClient';
 import { PACKAGE_CATEGORIES } from '@/lib/categories';
 import { summarizeBudget } from '@/lib/budget';
 import { formatBRL, formatDate, parseMoney } from '@/lib/format';
@@ -20,11 +21,13 @@ import styles from '@/styles/Package.module.css';
 
 export function PackageClient({ initialTripId }: { initialTripId?: string }) {
   const { supabase, user, loading: authLoading, configured, signIn } = useAuth();
-  const { trips, selectedTrip, selectedId, setSelectedId, loading: tripsLoading } = useTrips(supabase, user, initialTripId);
+  const { trips, selectedTrip, selectedId, setSelectedId, reload, loading: tripsLoading } = useTrips(supabase, user, initialTripId);
   const [items, setItems] = useState<PackageItem[]>([]);
   const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<number, { title: string; cost: string }>>({});
+  const [budgetDraft, setBudgetDraft] = useState('0');
+  const [showDiscoveryBox, setShowDiscoveryBox] = useState(false);
 
   const load = useCallback(async () => {
     if (!supabase || !selectedId) {
@@ -45,11 +48,25 @@ export function PackageClient({ initialTripId }: { initialTripId?: string }) {
     load();
   }, [load]);
 
+  useEffect(() => {
+    setBudgetDraft(String(selectedTrip?.budget_limit ?? 0));
+  }, [selectedTrip?.id, selectedTrip?.budget_limit]);
+
   const updateItem = async (id: string, patch: Partial<PackageItem>) => {
     if (!supabase) return;
     const { error: err } = await supabase.from('package_items').update(patch).eq('id', id);
     if (err) return setError(err.message);
     setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i)));
+  };
+
+  const saveBudget = async () => {
+    if (!supabase || !selectedTrip) return;
+    const value = Number(String(budgetDraft).replace(',', '.'));
+    if (!Number.isFinite(value) || value < 0) return setError('Informe um teto válido, igual ou maior que zero.');
+    const { error: err } = await supabase.from('trips').update({ budget_limit: value }).eq('id', selectedTrip.id);
+    if (err) return setError(err.message);
+    setError(null);
+    await reload();
   };
 
   const deleteItem = async (id: string) => {
@@ -99,7 +116,7 @@ export function PackageClient({ initialTripId }: { initialTripId?: string }) {
         <div className={styles.toolbar}>
           <TripPicker trips={trips} selectedId={selectedId} onChange={setSelectedId} loading={tripsLoading} />
           {selectedTrip && (
-            <Link href={`/box?trip=${selectedTrip.id}`} className="gt-btn gt-btn-light"><Sparkles size={14} /> Caixa de Descobertas</Link>
+            <button type="button" className="gt-btn gt-btn-light" onClick={() => setShowDiscoveryBox((value) => !value)}><Sparkles size={14} /> {showDiscoveryBox ? 'Fechar triagem' : 'Triagem de descobertas'}</button>
           )}
         </div>
 
@@ -114,8 +131,11 @@ export function PackageClient({ initialTripId }: { initialTripId?: string }) {
                 <span className="gt-muted">{formatDate(selectedTrip.start_date)} a {formatDate(selectedTrip.end_date)} · {selectedTrip.travelers_count} viajante(s)</span>
               </div>
               <div className={styles.summaryItem}>
-                <span className={styles.summaryLabel}>Teto</span>
-                <strong>{Number(selectedTrip.budget_limit) > 0 ? formatBRL(selectedTrip.budget_limit) : 'Sem teto'}</strong>
+                <label className={styles.summaryLabel} htmlFor="trip-budget-limit">Teto do orçamento (R$)</label>
+                <div className={styles.budgetEditor}>
+                  <input id="trip-budget-limit" className="gt-input" type="number" min="0" step="0.01" value={budgetDraft} onChange={(e) => setBudgetDraft(e.target.value)} onBlur={saveBudget} aria-label="Editar teto do orçamento" />
+                  <button type="button" className="gt-btn gt-btn-light gt-btn-sm" onClick={saveBudget}>Salvar</button>
+                </div>
               </div>
               <div className={styles.summaryItem}>
                 <span className={styles.summaryLabel}>Total previsto</span>
@@ -199,6 +219,13 @@ export function PackageClient({ initialTripId }: { initialTripId?: string }) {
               })}
             </div>
           </>
+        )}
+        {showDiscoveryBox && selectedTrip && (
+          <section className={styles.discoveryPanel} aria-label="Triagem de descobertas da viagem">
+            <h2>Caixa de Descobertas · {selectedTrip.destination_city}</h2>
+            <p className="gt-muted">Guarde ideias e transfira achados para uma das áreas do pacote.</p>
+            <BoxClient initialTripId={selectedTrip.id} embedded />
+          </section>
         )}
       </div>
     </main>

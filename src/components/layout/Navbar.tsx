@@ -19,14 +19,14 @@ import { useAuth } from "@/hooks/useAuth";
 
 // Links visiveis apenas para visitantes publicos
 const publicLinks = [
-  { href: "/", label: "Descobrir", icon: Compass },
+  { href: "/discover", label: "Descobrir", icon: Compass },
   { href: "/vitrine", label: "Vitrine", badge: "Exemplo", icon: Sparkles },
   { href: "/radar", label: "Radar", icon: TrendingDown },
 ];
 
 // Links visiveis quando a pessoa esta logada
 const authenticatedLinks = [
-  { href: "/", label: "Descobrir", icon: Compass },
+  { href: "/discover", label: "Descobrir", icon: Compass },
   { href: "/vitrine", label: "Vitrine", badge: "Exemplo", icon: Sparkles },
   { href: "/package", label: "Meu Pacote", icon: BriefcaseBusiness },
   { href: "/my-trips", label: "Minhas Viagens", icon: Plane },

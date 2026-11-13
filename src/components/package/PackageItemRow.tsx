@@ -43,8 +43,8 @@ export function PackageItemRow({ item, onUpdate, onDelete }: Props) {
           className={`gt-input ${styles.costInput}`}
           value={estimated}
           inputMode="decimal"
-          placeholder="Estimado"
-          title="Custo estimado (R$)"
+          placeholder="Orçado (R$)"
+          title="Valor orçado / previsto (R$)"
           onChange={(e) => setEstimated(e.target.value)}
           onBlur={() => onUpdate(item.id, { estimated_cost: parseMoney(estimated) ?? 0 })}
         />
@@ -52,8 +52,8 @@ export function PackageItemRow({ item, onUpdate, onDelete }: Props) {
           className={`gt-input ${styles.costInput}`}
           value={finalCost}
           inputMode="decimal"
-          placeholder="Final"
-          title="Custo final pago (R$)"
+          placeholder="Pago (R$)"
+          title="Valor efetivamente pago (R$)"
           onChange={(e) => setFinalCost(e.target.value)}
           onBlur={() => onUpdate(item.id, { final_cost: parseMoney(finalCost) })}
         />

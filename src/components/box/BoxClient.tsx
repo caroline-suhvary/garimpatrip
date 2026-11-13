@@ -29,7 +29,7 @@ const MANUAL_CATEGORIES: { value: DiscoveryCategory; label: string }[] = [
   { value: 'doc', label: 'Documentação' },
 ];
 
-export function BoxClient({ initialTripId }: { initialTripId?: string }) {
+export function BoxClient({ initialTripId, embedded = false }: { initialTripId?: string; embedded?: boolean }) {
   const { supabase, user, loading: authLoading, configured, signIn } = useAuth();
   const { trips, selectedTrip, selectedId, setSelectedId, loading: tripsLoading } = useTrips(supabase, user, initialTripId);
   const [items, setItems] = useState<DiscoveryItem[]>([]);
@@ -109,8 +109,8 @@ export function BoxClient({ initialTripId }: { initialTripId?: string }) {
 
   if (!authLoading && !user) {
     return (
-      <main className="gt-page">
-        <div className={styles.container}>
+      <main className={embedded ? styles.embeddedWrapper : "gt-page"}>
+        <div className={embedded ? styles.embeddedContainer : styles.container}>
           <h1 className={styles.title}>Caixa de Descobertas</h1>
           <div style={{ marginTop: '1.5rem' }}><LoginRequired configured={configured} onLogin={signIn} /></div>
         </div>
@@ -125,8 +125,8 @@ export function BoxClient({ initialTripId }: { initialTripId?: string }) {
     (it.raw_payload?.source as string | undefined) ?? (it.source_type === 'manual' ? 'Manual' : it.source_type === 'web_result' ? 'Web' : 'Parceiro');
 
   return (
-    <main className="gt-page">
-      <div className={styles.container}>
+    <main className={embedded ? styles.embeddedWrapper : "gt-page"}>
+      <div className={embedded ? styles.embeddedContainer : styles.container}>
         <div className={styles.header}>
           <span className={styles.badge}>Espaço Temporário de Triagem</span>
           <h1 className={styles.title}>Caixa de Descobertas{selectedTrip ? `: ${selectedTrip.destination_city}` : ''}</h1>

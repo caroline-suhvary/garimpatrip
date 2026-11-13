@@ -2,6 +2,11 @@
   margin-bottom: 1.5rem;
 }
 
+.budgetEditor { display: flex; align-items: center; gap: .45rem; margin-top: .3rem; }
+.budgetEditor :global(.gt-input) { width: 150px; font-weight: 800; }
+.discoveryPanel { margin-top: 1.5rem; padding: 1rem; border: 1px solid var(--bg-sand-300); border-radius: var(--radius-bento); background: #fff; }
+.discoveryPanel h2 { margin-bottom: .35rem; color: var(--brand-dark); }
+
 .toolbar {
   display: flex;
   align-items: center;

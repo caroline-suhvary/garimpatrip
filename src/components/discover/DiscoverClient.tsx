@@ -136,22 +136,33 @@ export function DiscoverClient({
       });
     }
     setSearched({ origin, destination, month });
+    try { window.localStorage.setItem("garimpatrip:lastDiscoverSearch", JSON.stringify({ origin, destination, month, budget })); } catch {}
     runSearch(origin, destination, month);
   };
 
-  // Dispara busca automática se os parâmetros vierem da página inicial
+  // Abre parâmetros vindos da home; sem parâmetros, restaura a última pesquisa local.
   useEffect(() => {
     if (initialDestination) {
       const orig = initialOrigin || DEFAULT_ORIGIN;
       const dest = initialDestination;
       const m = initialMonth || "";
-      setOrigin(orig);
-      setDestination(dest);
-      if (initialMonth) setMonth(initialMonth);
+      setOrigin(orig); setDestination(dest); setMonth(m);
       if (initialBudget) setBudget(initialBudget);
       setSearched({ origin: orig, destination: dest, month: m });
+      try { window.localStorage.setItem("garimpatrip:lastDiscoverSearch", JSON.stringify({ origin: orig, destination: dest, month: m, budget: initialBudget || budget })); } catch {}
       runSearch(orig, dest, m);
+      return;
     }
+    try {
+      const saved = JSON.parse(window.localStorage.getItem("garimpatrip:lastDiscoverSearch") || "null");
+      if (saved?.destination) {
+        const orig = saved.origin || DEFAULT_ORIGIN; const dest = saved.destination; const m = saved.month || "";
+        setOrigin(orig); setDestination(dest); setMonth(m); if (saved.budget) setBudget(saved.budget);
+        setSearched({ origin: orig, destination: dest, month: m }); runSearch(orig, dest, m);
+      }
+    } catch {}
+  // A restauração deve ocorrer apenas quando os parâmetros iniciais mudarem.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialOrigin, initialDestination, initialMonth, initialBudget]);
 
   // Garante perfil antes de criar viagem

@@ -57,8 +57,8 @@ export function AutocompleteInput({
 
     const trimmed = query.trim();
 
-    // Começa a sugerir a partir de 3 letras digitadas
-    if (trimmed.length < 3) {
+    // Começa a sugerir com 2 caracteres, incluindo siglas de estados.
+    if (trimmed.length < 2) {
       setSuggestions([]);
       setLoading(false);
       setIsOpen(false);

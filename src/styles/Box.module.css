@@ -1,3 +1,6 @@
+.embeddedWrapper { margin-top: 1rem; padding: 1rem; border-radius: 14px; background: var(--bg-sand-50); }
+.embeddedContainer { width: 100%; margin: 0; padding: 0; }
+
 .container {
   max-width: 1200px;
   margin: 0 auto;

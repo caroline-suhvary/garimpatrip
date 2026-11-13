@@ -216,3 +216,24 @@ button {
   background: none;
   font-family: inherit;
 }
+
+
+/* Utilitários de layout e formulário compartilhados pelas telas de planejamento. */
+.gt-page { min-height: 70vh; padding: 1.5rem 1rem 3rem; }
+.gt-container { width: min(100%, 1200px); margin: 0 auto; }
+.gt-title { color: var(--brand-dark); font-size: clamp(1.7rem, 3vw, 2.35rem); font-weight: 900; line-height: 1.15; }
+.gt-subtitle { color: var(--text-muted); margin-top: .45rem; }
+.gt-muted { color: var(--text-muted); font-size: .88rem; }
+.gt-label { display: flex; flex-direction: column; gap: .4rem; color: var(--text-muted); font-size: .82rem; font-weight: 700; }
+.gt-input { min-width: 0; width: 100%; border: 1px solid var(--bg-sand-300); border-radius: 10px; padding: .62rem .75rem; background: #fff; color: var(--text-dark); font: inherit; }
+.gt-input:focus { outline: 2px solid rgba(229,164,40,.35); border-color: var(--brand-yellow); }
+.gt-btn { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; border: 1px solid transparent; border-radius: 10px; padding: .62rem .9rem; font-weight: 750; cursor: pointer; }
+.gt-btn-sm { padding: .4rem .65rem; font-size: .82rem; }
+.gt-btn-dark { background: var(--brand-dark); color: #fff; }
+.gt-btn-light { background: #fff; border-color: var(--bg-sand-300); color: var(--brand-dark); }
+.gt-btn-yellow { background: var(--brand-yellow); color: #241c10; }
+.gt-btn-danger { background: #fff0ed; border-color: #f2c3b8; color: #8a2f20; }
+.gt-error { padding: .8rem 1rem; border-radius: 10px; background: #fff0ed; color: #8a2f20; }
+.gt-success { padding: .8rem 1rem; border-radius: 10px; background: #e9f8ee; color: #17643a; }
+.gt-badge { display: inline-flex; border: 1px solid; border-radius: 999px; padding: .3rem .7rem; font-size: .75rem; font-weight: 800; }
+@media (max-width: 560px) { .gt-page { padding: 1rem .75rem 2rem; } }
