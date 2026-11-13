@@ -88,6 +88,32 @@ export function DiscoverClient({
   } | null>(null);
 
   const [savedUrls, setSavedUrls] = useState<Set<string>>(new Set());
+
+  // Sincroniza itens ja guardados no pacote da viagem ativa selecionada
+  useEffect(() => {
+    if (!supabase || !selectedId) {
+      setSavedUrls(new Set());
+      return;
+    }
+    let isMounted = true;
+    supabase
+      .from("package_items")
+      .select("external_url, meta_details")
+      .eq("trip_id", selectedId)
+      .then(({ data }) => {
+        if (!isMounted || !data) return;
+        const urls = new Set<string>();
+        for (const row of data) {
+          if (row.external_url) urls.add(row.external_url);
+          const rawId = (row.meta_details as any)?.raw_payload?.id;
+          if (rawId) urls.add(String(rawId));
+        }
+        setSavedUrls(urls);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [supabase, selectedId]);
   const [message, setMessage] = useState<{
     type: "ok" | "error";
     text: string;
@@ -254,71 +280,60 @@ export function DiscoverClient({
     }
   };
 
-  const saveToBox = async (item: SearchResult) => {
+  const CATEGORY_MAP: Record<string, { id: number; name: string }> = {
+    flight: { id: 1, name: "Transporte Principal" },
+    transport: { id: 4, name: "Deslocamento Local" },
+    hotel: { id: 2, name: "Hospedagem & Pousadas" },
+    tour: { id: 3, name: "Passeios & Atrações" },
+    doc: { id: 5, name: "Documentação & Saúde" },
+    food: { id: 6, name: "Alimentação & Gastos" },
+    web: { id: 3, name: "Passeios & Guias" },
+    web_idea: { id: 3, name: "Passeios & Guias" },
+  };
+
+  const saveToPackage = async (item: SearchResult) => {
     if (!supabase || !user) return signIn();
     if (!selectedId) {
       return setMessage({
         type: "error",
-        text: "Selecione ou crie uma viagem ativa para guardar itens na Caixa.",
+        text: "Selecione ou crie uma viagem ativa para guardar itens no seu Roteiro.",
       });
     }
+    const catInfo = CATEGORY_MAP[item.category] || { id: 3, name: "Passeios & Atrações" };
     try {
       await ensureProfile();
-      // const { error } = await supabase.from("discoveries").insert({
-      //   user_id: user.id,
-      //   trip_id: selectedId,
-      //   title: item.title,
-      //   description: item.description,
-      //   category: item.category,
-      //   estimated_price: item.price,
-      //   currency: item.currency || "BRL",
-      //   source_url: item.url,
-      //   provider: item.source,
-      //   raw_payload: item.raw || {},
-      // });
-      const validCategories = [
-        "flight",
-        "hotel",
-        "tour",
-        "transport",
-        "doc",
-        "food",
-        "web_idea",
-      ];
-      const rawCategory =
-        (item.category as string) === "web" ? "web_idea" : item.category;
-      const cat = validCategories.includes(rawCategory)
-        ? rawCategory
-        : "web_idea";
-      const srcType = item.source_type === "manual" ? "manual" : "api_partner";
-
-      const { error } = await supabase.from("discoveries").insert({
-        user_id: user.id,
+      const { error } = await supabase.from("package_items").insert({
         trip_id: selectedId,
+        category_id: catInfo.id,
         title: item.title.slice(0, 200),
-        description: item.description || null,
-        category: cat,
-        estimated_price: item.price || 0,
+        status: "planejado",
+        estimated_cost: item.price ? Number(item.price) : 0,
         currency: item.currency || "BRL",
         external_url: item.url || null,
-        source_type: srcType,
-        raw_payload: item.raw || {},
+        notes: item.description ? item.description.slice(0, 500) : null,
+        meta_details: {
+          provider: item.source,
+          category_code: item.category,
+          source_type: item.source_type,
+          raw_payload: item.raw || {},
+        },
       });
-
       if (error) throw error;
       setSavedUrls((prev) => new Set(prev).add(item.id || item.url || ""));
 
       setMessage({
         type: "ok",
-        text: `"${item.title.slice(0, 40)}" guardado na sua Caixa!`,
+        text: `"${item.title.slice(0, 40)}" guardado em ${activeTripName} (${catInfo.name})!`,
       });
     } catch (err: any) {
       setMessage({
         type: "error",
-        text: err.message || "Erro ao guardar na Caixa.",
+        text: err.message || "Erro ao guardar no Pacote.",
       });
     }
   };
+
+  const saveToBox = saveToPackage;
 
   const handleManualSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -361,6 +376,15 @@ export function DiscoverClient({
   const isWebDegraded = data?.web?.degraded;
   const webFallback = data?.web?.fallbackUrls;
 
+    const activeTrip = trips.find((t) => t.id === selectedId);
+  const activeTripName = activeTrip?.destination_city || activeTrip?.title || "Roteiro";
+
+  const getSaveLabel = (saved: boolean) => {
+    if (saved) return `Guardado em ${activeTripName}`;
+    if (!selectedId) return "Guardar";
+    return `Guardar em ${activeTripName}`;
+  };
+
   return (
     <div className={styles.container}>
       {/* SELETOR DE VIAGEM ATIVA NO TOPO */}
@@ -391,6 +415,26 @@ export function DiscoverClient({
             </span>
           </button>
         </div>
+              {/* ALERTA CASO A BUSCA SEJA DIFERENTE DO ROTEIRO ATIVO */}
+        {Boolean(selectedId && activeTrip && cleanDest &&
+          !activeTripName.toLowerCase().includes(cleanDest.toLowerCase()) &&
+          !cleanDest.toLowerCase().includes(activeTripName.toLowerCase())) && (
+          <div className={styles.tripMismatchAlert}>
+            <AlertCircle size={18} className={styles.tripMismatchIcon} />
+            <div className={styles.tripMismatchText}>
+              <strong>Atenção ao Roteiro:</strong> Sua viagem ativa é <u>{activeTripName}</u>, mas você está pesquisando <u>{cleanDest}</u>.
+              Os itens que você guardar irão para o pacote de <strong>{activeTripName}</strong>.
+            </div>
+            <button
+              type="button"
+              className={styles.createTripBtnAlt}
+              onClick={createTrip}
+              disabled={creatingTrip}>
+              <Plus size={14} />
+              <span>Criar Roteiro para {cleanDest}</span>
+            </button>
+          </div>
+        )}
       </section>
 
       {/* CABEÇALHO E FORMULÁRIO DE BUSCA */}
@@ -613,7 +657,7 @@ export function DiscoverClient({
                             onClick={() => saveToBox(flight)}
                             disabled={saved}>
                             <BookmarkPlus size={16} />
-                            <span>{saved ? "Guardado" : "Guardar"}</span>
+                            <span>{getSaveLabel(saved)}</span>
                           </button>
                         </div>
                       </div>
@@ -701,7 +745,7 @@ export function DiscoverClient({
                           onClick={() => saveToBox(item)}
                           disabled={saved}>
                           <BookmarkPlus size={16} />
-                          <span>{saved ? "Guardado" : "Guardar"}</span>
+                          <span>{getSaveLabel(saved)}</span>
                         </button>
                       </div>
                     </div>
@@ -778,7 +822,7 @@ export function DiscoverClient({
                           onClick={() => saveToBox(hotel)}
                           disabled={saved}>
                           <BookmarkPlus size={16} />
-                          <span>{saved ? "Guardado" : "Guardar"}</span>
+                          <span>{getSaveLabel(saved)}</span>
                         </button>
                       </div>
                     </div>
@@ -880,7 +924,7 @@ export function DiscoverClient({
                           onClick={() => saveToBox(tour)}
                           disabled={saved}>
                           <BookmarkPlus size={16} />
-                          <span>{saved ? "Guardado" : "Guardar"}</span>
+                          <span>{getSaveLabel(saved)}</span>
                         </button>
                       </div>
                     </div>
@@ -956,7 +1000,7 @@ export function DiscoverClient({
                             onClick={() => saveToBox(webItem)}
                             disabled={saved}>
                             <BookmarkPlus size={16} />
-                            <span>{saved ? "Guardado" : "Guardar"}</span>
+                            <span>{getSaveLabel(saved)}</span>
                           </button>
                         </div>
                       </div>
@@ -1027,7 +1071,7 @@ export function DiscoverClient({
                 className={styles.degradedBanner}
                 style={{ marginTop: "1rem" }}>
                 <form onSubmit={handleManualSave} className={styles.manualForm}>
-                  <h4>Guardar um link de viagem</h4>
+                  <h4>Guardar um link de viagem no Roteiro {activeTripName}</h4>
                   <div className={styles.manualRow}>
                     <input
                       type="text"
@@ -1049,7 +1093,7 @@ export function DiscoverClient({
                       disabled={savingManual}>
                       <BookmarkPlus size={16} />
                       <span>
-                        {savingManual ? "Salvando..." : "Guardar na Caixa"}
+                        {savingManual ? "Salvando..." : `Guardar em ${activeTripName}`}
                       </span>
                     </button>
                   </div>
@@ -1100,7 +1144,7 @@ export function DiscoverClient({
                             onClick={() => saveToBox(webItem)}
                             disabled={saved}>
                             <BookmarkPlus size={16} />
-                            <span>{saved ? "Guardado" : "Guardar"}</span>
+                            <span>{getSaveLabel(saved)}</span>
                           </button>
                         </div>
                       </div>

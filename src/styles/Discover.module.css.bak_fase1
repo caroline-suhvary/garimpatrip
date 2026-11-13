@@ -1,0 +1,755 @@
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 4rem;
+  color: #2b2823;
+}
+
+/* Barra superior da Viagem Ativa */
+.tripBar {
+  background: #ffffff;
+  border: 1px solid #e7dfd5;
+  border-radius: 14px;
+  padding: 0.85rem 1.25rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+.tripBarContent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.tripBarLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.tripIcon {
+  color: #d97706;
+}
+
+.tripBarLabel {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #78716c;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.2rem;
+}
+
+.createTripBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.1rem;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+  border-radius: 30px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.createTripBtn:hover:not(:disabled) {
+  background: #fde68a;
+  transform: translateY(-1px);
+}
+
+/* Cabeçalho da página */
+.heroSection {
+  background: linear-gradient(180deg, #fdfbf7 0%, #f7f3ed 100%);
+  border: 1px solid #e8e1d7;
+  border-radius: 20px;
+  padding: 2.25rem;
+  margin-bottom: 2.5rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+}
+
+.heroHeader {
+  text-align: center;
+  max-width: 720px;
+  margin: 0 auto 1.5rem;
+}
+
+.title {
+  font-size: 2.2rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #1c1917;
+  margin-bottom: 0.6rem;
+}
+
+.highlight {
+  color: #d97706;
+}
+
+.subtitle {
+  font-size: 1.05rem;
+  color: #57534e;
+  line-height: 1.5;
+}
+
+/* Caixa com a dica solicitada no Ponto A */
+.searchTipBox {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: #fffbeb;
+  border: 1px solid #fef3c7;
+  border-left: 4px solid #f59e0b;
+  border-radius: 10px;
+  padding: 0.85rem 1.15rem;
+  font-size: 0.9rem;
+  color: #92400e;
+  margin-bottom: 1.5rem;
+}
+
+.tipIcon {
+  flex-shrink: 0;
+  color: #d97706;
+}
+
+/* Formulário de Busca */
+.searchForm {
+  display: grid;
+  grid-template-columns: 1.8fr 1.8fr 1.2fr 1.1fr auto;
+  gap: 1rem;
+  align-items: flex-end;
+  background: #ffffff;
+  padding: 1.25rem;
+  border-radius: 16px;
+  border: 1px solid #e7dfd5;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.04);
+}
+
+.inputGroup,
+.inputGroupSmall {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #44403c;
+}
+
+.inputField {
+  height: 44px;
+  padding: 0 0.85rem;
+  border: 1px solid #d6cebf;
+  border-radius: 10px;
+  background: #fcfbfa;
+  font-size: 0.95rem;
+  color: #1c1917;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.inputField:focus {
+  border-color: #d97706;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.15);
+}
+
+.fieldNote {
+  font-size: 0.7rem;
+  color: #a8a29e;
+}
+
+.submitBtn {
+  height: 44px;
+  padding: 0 1.5rem;
+  background: #d97706;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.submitBtn:hover:not(:disabled) {
+  background: #b45309;
+  transform: translateY(-1px);
+}
+
+.msgOk,
+.msgError {
+  margin-top: 1.25rem;
+  padding: 0.85rem 1.25rem;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.msgOk {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.msgError {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+/* Abas de Filtros */
+.tabsSection {
+  margin-bottom: 2rem;
+}
+
+.tabsBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  background: #f2eee8;
+  padding: 0.4rem;
+  border-radius: 14px;
+  border: 1px solid #e5ded4;
+}
+
+.tab,
+.tabActive {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 1rem;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tab {
+  background: transparent;
+  color: #57534e;
+}
+
+.tab:hover {
+  background: rgba(255, 255, 255, 0.6);
+  color: #1c1917;
+}
+
+.tabActive {
+  background: #ffffff;
+  color: #d97706;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+/* Loading */
+.loadingArea {
+  text-align: center;
+  padding: 4rem 1rem;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e7dfd5;
+}
+
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #e7dfd5;
+  border-top-color: #d97706;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 1.25rem;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Seções de Resultados */
+.resultsArea {
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+}
+
+.sectionBlock {
+  background: #ffffff;
+  border: 1px solid #e7dfd5;
+  border-radius: 18px;
+  padding: 1.75rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 2px solid #f5f0e8;
+  padding-bottom: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.sectionTitleGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.sectionTitleGroup h2 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #1c1917;
+}
+
+.sectionIcon {
+  color: #d97706;
+  width: 24px;
+  height: 24px;
+}
+
+.sectionBadge {
+  background: #f4ede4;
+  color: #78716c;
+  padding: 0.35rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* Aviso de Aeroporto / Notice */
+.noticeCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  background: #fbf9f4;
+  border: 1px dashed #d6cebf;
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.noticeIcon {
+  color: #d97706;
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+}
+
+.noticeContent p {
+  font-size: 0.95rem;
+  color: #44403c;
+  line-height: 1.5;
+  margin-bottom: 0.6rem;
+}
+
+.linkButtonSmall {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #d97706;
+  text-decoration: none;
+}
+
+.linkButtonSmall:hover {
+  text-decoration: underline;
+}
+
+/* Grid de Cards */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.25rem;
+}
+
+.card {
+  background: #ffffff;
+  border: 1px solid #e8e2d8;
+  border-radius: 14px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.2s ease;
+}
+
+.card:hover {
+  border-color: #d97706;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
+  transform: translateY(-2px);
+}
+
+.highlightCard {
+  border-color: #f59e0b;
+  background: #fffdf9;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.sourceTag {
+  background: #f3ece3;
+  color: #635b52;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+}
+
+.priceTag {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #047857;
+}
+
+.badgePromo {
+  background: #fef3c7;
+  color: #b45309;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+}
+
+.cardTitle {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1c1917;
+  margin-bottom: 0.5rem;
+  line-height: 1.35;
+}
+
+.cardDesc {
+  font-size: 0.85rem;
+  color: #57534e;
+  line-height: 1.5;
+  margin-bottom: 0.85rem;
+  flex-grow: 1;
+}
+
+.disclaimerText {
+  font-size: 0.7rem;
+  color: #8c827a;
+  background: #f9f7f4;
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  margin-bottom: 0.85rem;
+}
+
+.cardActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.actionBtnPrimary,
+.actionBtnSecondary,
+.saveBtn,
+.savedBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.55rem 0.85rem;
+  border-radius: 8px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.actionBtnPrimary {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+  flex: 1;
+  justify-content: center;
+}
+
+.actionBtnPrimary:hover {
+  background: #fde68a;
+}
+
+.actionBtnSecondary {
+  background: #f5f2ed;
+  color: #44403c;
+  border: 1px solid #e7e0d5;
+}
+
+.actionBtnSecondary:hover {
+  background: #eae4d8;
+}
+
+.saveBtn {
+  background: #ffffff;
+  color: #44403c;
+  border: 1px solid #d6cebf;
+}
+
+.saveBtn:hover {
+  background: #f5f2ed;
+  border-color: #bfa892;
+}
+
+.savedBtn {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #86efac;
+  cursor: default;
+}
+
+/* Banner de Parceiro / Booking */
+.partnerBanner {
+  background: #f0f7ff;
+  border: 1px solid #bae6fd;
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.partnerBannerInfo h3 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0369a1;
+  margin-bottom: 0.25rem;
+}
+
+.partnerBannerInfo p {
+  font-size: 0.85rem;
+  color: #0c4a6e;
+}
+
+.bannerBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #0284c7;
+  color: #ffffff;
+  padding: 0.65rem 1.25rem;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.bannerBtn:hover {
+  background: #0369a1;
+}
+
+/* Caixa de Agregadores de Experiências */
+.aggregatorsBox {
+  background: #faf7f2;
+  border: 1px solid #ede5d8;
+  border-radius: 14px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.aggregatorsTitle {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #44403c;
+  margin-bottom: 0.75rem;
+}
+
+.aggregatorsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.aggregatorBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.9rem;
+  background: #ffffff;
+  color: #78350f;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.aggregatorBtn:hover {
+  background: #fef3c7;
+  border-color: #f59e0b;
+}
+
+/* Banner de Garimpo Livre Degraded */
+.degradedBanner {
+  background: #fffdfa;
+  border: 1px solid #fcd34d;
+  border-radius: 14px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.degradedInfo h3 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #92400e;
+  margin-bottom: 0.4rem;
+}
+
+.degradedInfo p {
+  font-size: 0.9rem;
+  color: #78350f;
+  line-height: 1.5;
+  margin-bottom: 1.25rem;
+}
+
+.degradedButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.engineBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #ffffff;
+  color: #1c1917;
+  border: 1px solid #d6cebf;
+  padding: 0.65rem 1.25rem;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.engineBtn:hover {
+  background: #fef3c7;
+  border-color: #f59e0b;
+}
+
+.manualForm {
+  background: #fbf9f4;
+  border: 1px dashed #d6cebf;
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.manualForm h4 {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #44403c;
+  margin-bottom: 0.6rem;
+}
+
+.manualRow {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.manualInput {
+  flex: 1;
+  min-width: 200px;
+  height: 40px;
+  padding: 0 0.75rem;
+  border: 1px solid #d6cebf;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.manualInputUrl {
+  flex: 1.5;
+  min-width: 240px;
+  height: 40px;
+  padding: 0 0.75rem;
+  border: 1px solid #d6cebf;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.manualSaveBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 40px;
+  padding: 0 1rem;
+  background: #d97706;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.manualSaveBtn:hover:not(:disabled) {
+  background: #b45309;
+}
+
+/* Responsividade Mobile */
+@media (max-width: 900px) {
+  .searchForm {
+    grid-template-columns: 1fr;
+  }
+  .heroSection {
+    padding: 1.5rem;
+  }
+  .title {
+    font-size: 1.75rem;
+  }
+}
+.noticeContent {
+  flex: 1;
+}
+
+.partnerBannerInfo {
+  flex: 1;
+}
+
+.degradedInfo {
+  margin-top: 0.5rem;
+  font-size: 0.88rem;
+  color: #78716c;
+}
+
+.cardThumb {
+  width: 100%;
+  height: 170px;
+  object-fit: cover;
+  border-radius: 10px;
+  margin-bottom: 0.75rem;
+}

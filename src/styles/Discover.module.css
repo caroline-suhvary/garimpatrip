@@ -753,3 +753,59 @@
   border-radius: 10px;
   margin-bottom: 0.75rem;
 }
+
+
+/* Destaque da Barra de Viagem Ativa e Alerta de Roteiro (Fase 1) */
+.tripBar {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%) !important;
+  border: 2px solid #f59e0b !important;
+  border-radius: 14px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.12);
+}
+
+.tripMismatchAlert {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+  padding: 0.75rem 1rem;
+  background: #ffffff;
+  border: 1px solid #fcd34d;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  color: #92400e;
+}
+
+.tripMismatchIcon {
+  color: #d97706;
+  flex-shrink: 0;
+}
+
+.tripMismatchText {
+  flex: 1;
+  min-width: 240px;
+  line-height: 1.4;
+}
+
+.createTripBtnAlt {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.85rem;
+  background: #d97706;
+  color: #ffffff;
+  border: none;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.createTripBtnAlt:hover {
+  background: #b45309;
+}

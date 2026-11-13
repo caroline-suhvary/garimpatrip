@@ -12,6 +12,8 @@ import { PackageItemRow } from '@/components/package/PackageItemRow';
 import { ScheduleArea } from '@/components/package/ScheduleArea';
 import { BudgetArea } from '@/components/package/BudgetArea';
 import { CurrencyRates } from '@/components/package/CurrencyRates';
+import { ConsolidatedTripMap } from '@/components/package/ConsolidatedTripMap';
+import { TravelDocumentsPanel } from '@/components/package/TravelDocumentsPanel';
 import { BoxClient } from '@/components/box/BoxClient';
 import { PACKAGE_CATEGORIES } from '@/lib/categories';
 import { summarizeBudget } from '@/lib/budget';
@@ -121,6 +123,7 @@ export function PackageClient({ initialTripId }: { initialTripId?: string }) {
         </div>
 
         {error && <div className="gt-error" style={{ marginBottom: '1rem' }}>{error}</div>}
+        {selectedTrip && <ConsolidatedTripMap items={items} schedule={schedule} />}
 
         {selectedTrip && (
           <>
@@ -175,6 +178,7 @@ export function PackageClient({ initialTripId }: { initialTripId?: string }) {
                       )}
                     </div>
 
+                    {cat.id === 5 && selectedTrip && <TravelDocumentsPanel trip={selectedTrip} />}
                     {cat.id === 7 && <CurrencyRates />}
                     {cat.id === 8 && supabase && (
                       <ScheduleArea supabase={supabase} trip={selectedTrip} items={schedule} onChange={setSchedule} onError={setError} />

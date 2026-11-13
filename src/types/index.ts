@@ -72,6 +72,10 @@ export interface PackageItem {
   external_url: string | null;
   notes: string | null;
   meta_details?: Record<string, unknown>;
+  address?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  place_id?: string | null;
   created_at: string;
 }
 
@@ -83,6 +87,8 @@ export interface ScheduleItem {
   start_time: string | null;
   title: string;
   location_name: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   notes: string | null;
   is_rainy_day_alternative: boolean;
 }

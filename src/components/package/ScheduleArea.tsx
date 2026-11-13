@@ -6,6 +6,7 @@ import { CloudRain, Plus, Trash2 } from 'lucide-react';
 import { formatDate } from '@/lib/format';
 import type { ScheduleItem, Trip } from '@/types';
 import styles from '@/styles/Package.module.css';
+import { LocationAutocomplete } from '@/components/package/LocationAutocomplete';
 
 interface Props {
   supabase: SupabaseClient;
@@ -23,7 +24,7 @@ function dateForDay(start: string | null, day: number): string | null {
 }
 
 export function ScheduleArea({ supabase, trip, items, onChange, onError }: Props) {
-  const [form, setForm] = useState({ day: '1', time: '', title: '', location: '', rainy: false });
+  const [form, setForm] = useState({ day: '1', time: '', title: '', location: '', latitude: null as number | null, longitude: null as number | null, rainy: false });
 
   const add = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,6 +39,8 @@ export function ScheduleArea({ supabase, trip, items, onChange, onError }: Props
         start_time: form.time || null,
         title: form.title.trim().slice(0, 200),
         location_name: form.location.trim() || null,
+        latitude: form.latitude,
+        longitude: form.longitude,
         is_rainy_day_alternative: form.rainy,
       })
       .select('*')
@@ -47,7 +50,7 @@ export function ScheduleArea({ supabase, trip, items, onChange, onError }: Props
       (a, b) => a.day_number - b.day_number || (a.start_time ?? '').localeCompare(b.start_time ?? ''),
     );
     onChange(next);
-    setForm({ ...form, time: '', title: '', location: '', rainy: false });
+    setForm({ ...form, time: '', title: '', location: '', latitude: null, longitude: null, rainy: false });
   };
 
   const remove = async (id: string) => {
@@ -91,7 +94,7 @@ export function ScheduleArea({ supabase, trip, items, onChange, onError }: Props
         <label className="gt-label">Dia<input className="gt-input" type="number" min={1} max={365} value={form.day} onChange={(e) => setForm({ ...form, day: e.target.value })} /></label>
         <label className="gt-label">Hora<input className="gt-input" type="time" value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} /></label>
         <label className="gt-label">Atividade<input className="gt-input" value={form.title} maxLength={200} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Ex.: Pelourinho" required /></label>
-        <label className="gt-label">Local<input className="gt-input" value={form.location} maxLength={200} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="Opcional" /></label>
+        <label className="gt-label">Local <small>(endereço ajuda a incluir no mapa)</small><LocationAutocomplete value={form.location} placeholder="Rua, atração ou endereço opcional" onSelect={(place) => setForm({ ...form, location: place.address, latitude: place.latitude, longitude: place.longitude })} /></label>
         <label className={styles.checkbox}>
           <input type="checkbox" checked={form.rainy} onChange={(e) => setForm({ ...form, rainy: e.target.checked })} /> Plano B chuva
         </label>

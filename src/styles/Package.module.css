@@ -403,3 +403,23 @@
     width: 90px;
   }
 }
+
+
+/* GarimpaTrip Fases 2–5: endereço, mapa e documentação */
+.itemLocation { flex: 1 1 100%; min-width: 100%; margin-top: 0.35rem; }
+.gt-location-autocomplete { position: relative; width: 100%; }
+.gt-location-autocomplete small { display: block; color: #64748b; margin-top: 0.25rem; }
+.gt-location-suggestions { position: absolute; z-index: 30; top: calc(100% + 2px); left: 0; right: 0; margin: 0; padding: 0.25rem; list-style: none; background: #fff; border: 1px solid #cbd5e1; border-radius: 0.55rem; box-shadow: 0 8px 22px rgba(15,23,42,.14); }
+.gt-location-suggestions button { width: 100%; text-align: left; border: 0; background: transparent; padding: .55rem .65rem; cursor: pointer; color: #253244; }
+.gt-location-suggestions button:hover { background: #f1f5f9; }
+.gt-trip-map, .gt-docs-panel { margin: 1rem 0 1.25rem; padding: 1rem; border: 1px solid #dbe4ef; border-radius: .9rem; background: #fff; }
+.gt-trip-map h3, .gt-docs-panel h3 { margin: 0 0 .4rem; }
+.gt-trip-map p, .gt-docs-panel p { color: #58677a; margin: .25rem 0 .75rem; }
+.gt-trip-map-canvas { height: 360px; width: 100%; border-radius: .7rem; background: #e9eef2; z-index: 0; }
+.gt-trip-map-legend { display: flex; flex-wrap: wrap; gap: .65rem 1rem; margin: .65rem 0; font-size: .84rem; }
+.gt-trip-map-legend span { display: inline-flex; align-items: center; gap: .35rem; }
+.gt-trip-map-legend i { display: inline-block; width: .7rem; height: .7rem; border-radius: 50%; }
+.gt-docs-panel ul { margin: .5rem 0 .8rem; padding-left: 1.2rem; color: #334155; }
+.gt-docs-panel div { display: flex; gap: .75rem 1.2rem; flex-wrap: wrap; }
+.gt-docs-panel a { display: inline-flex; align-items: center; gap: .3rem; color: #1d5c88; }
+.gt-docs-panel small { display: block; margin-top: .75rem; color: #64748b; }

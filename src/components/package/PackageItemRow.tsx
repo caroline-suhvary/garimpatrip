@@ -5,6 +5,7 @@ import { ExternalLink, Trash2 } from 'lucide-react';
 import { parseMoney } from '@/lib/format';
 import type { PackageItem, PackageStatus } from '@/types';
 import styles from '@/styles/Package.module.css';
+import { LocationAutocomplete } from '@/components/package/LocationAutocomplete';
 
 interface Props {
   item: PackageItem;
@@ -28,6 +29,7 @@ export function PackageItemRow({ item, onUpdate, onDelete }: Props) {
           </a>
         )}
       </div>
+      <div className={styles.itemLocation}><LocationAutocomplete value={item.address} onSelect={(place) => onUpdate(item.id, place)} /></div>
       <div className={styles.itemControls}>
         <select
           className={`gt-input ${styles.statusSelect} ${styles[`status_${item.status}`]}`}
