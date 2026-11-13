@@ -187,18 +187,41 @@ export function DiscoverClient({
     setMessage(null);
     try {
       await ensureProfile();
+      // const budgetNum = parseMoney(budget) || 3500;
+      // const { data: trip, error } = await supabase
+      //   .from("trips")
+      //   .insert({
+      //     user_id: user.id,
+      //     title: `Roteiro ${cleanCity(dest)}`,
+      //     destination: dest,
+      //     origin: searched?.origin || origin || "São Paulo",
+      //     departure_date: searched?.month ? `${searched.month}-10` : null,
+      //     return_date: searched?.month ? `${searched.month}-17` : null,
+      //     total_budget: budgetNum,
+      //     status: "planning",
+      //   })
+      //   .select()
+      //   .single();
       const budgetNum = parseMoney(budget) || 3500;
+      const destCity = cleanCity(dest).slice(0, 100);
+      const originCity = cleanCity(
+        searched?.origin || origin || "São Paulo",
+      ).slice(0, 100);
       const { data: trip, error } = await supabase
         .from("trips")
         .insert({
           user_id: user.id,
-          title: `Roteiro ${cleanCity(dest)}`,
-          destination: dest,
-          origin: searched?.origin || origin || "São Paulo",
-          departure_date: searched?.month ? `${searched.month}-10` : null,
-          return_date: searched?.month ? `${searched.month}-17` : null,
-          total_budget: budgetNum,
-          status: "planning",
+          title: `Roteiro ${destCity}`.slice(0, 150),
+          origin_city: originCity,
+          origin_iata: extractIata(searched?.origin || origin) || null,
+          destination_city: destCity,
+          destination_iata: extractIata(dest) || null,
+          start_date: searched?.month ? `${searched.month}-10` : null,
+          end_date: searched?.month ? `${searched.month}-17` : null,
+          is_flexible_dates: true,
+          travelers_count: 1,
+          budget_limit: budgetNum,
+          status: "planejamento",
         })
         .select()
         .single();
@@ -230,18 +253,47 @@ export function DiscoverClient({
     }
     try {
       await ensureProfile();
+      // const { error } = await supabase.from("discoveries").insert({
+      //   user_id: user.id,
+      //   trip_id: selectedId,
+      //   title: item.title,
+      //   description: item.description,
+      //   category: item.category,
+      //   estimated_price: item.price,
+      //   currency: item.currency || "BRL",
+      //   source_url: item.url,
+      //   provider: item.source,
+      //   raw_payload: item.raw || {},
+      // });
+      const validCategories = [
+        "flight",
+        "hotel",
+        "tour",
+        "transport",
+        "doc",
+        "food",
+        "web_idea",
+      ];
+      const rawCategory =
+        (item.category as string) === "web" ? "web_idea" : item.category;
+      const cat = validCategories.includes(rawCategory)
+        ? rawCategory
+        : "web_idea";
+      const srcType = item.source_type === "manual" ? "manual" : "api_partner";
+
       const { error } = await supabase.from("discoveries").insert({
         user_id: user.id,
         trip_id: selectedId,
-        title: item.title,
-        description: item.description,
-        category: item.category,
-        estimated_price: item.price,
+        title: item.title.slice(0, 200),
+        description: item.description || null,
+        category: cat,
+        estimated_price: item.price || 0,
         currency: item.currency || "BRL",
-        source_url: item.url,
-        provider: item.source,
+        external_url: item.url || null,
+        source_type: srcType,
         raw_payload: item.raw || {},
       });
+
       if (error) throw error;
       setSavedUrls((prev) => new Set(prev).add(item.id || item.url || ""));
 
@@ -285,7 +337,9 @@ export function DiscoverClient({
 
   const cleanDest = cleanCity(searched?.destination || destination);
   const cleanOrig = cleanCity(searched?.origin || origin);
-  const fullDestinationForSearch = (searched?.destination || destination).replace(/\([A-Za-z]{3}\)\s*$/, "").trim();
+  const fullDestinationForSearch = (searched?.destination || destination)
+    .replace(/\([A-Za-z]{3}\)\s*$/, "")
+    .trim();
 
   const flightsList = data?.flights?.results || [];
   const transportList = data?.transport?.results || [];
@@ -459,9 +513,7 @@ export function DiscoverClient({
       {searching && (
         <div className={styles.loadingArea}>
           <div className={styles.spinner} />
-          <p>
-            Consultando voos, passeios, hospedagens e opções terrestres...
-          </p>
+          <p>Consultando voos, passeios, hospedagens e opções terrestres...</p>
         </div>
       )}
 
@@ -835,33 +887,65 @@ export function DiscoverClient({
                   <Globe className={styles.sectionIcon} />
                   <h2>Guias de Viagem & Garimpo na Web</h2>
                 </div>
-                <span className={styles.sectionBadge}>Wikivoyage + buscas externas</span>
+                <span className={styles.sectionBadge}>
+                  Wikivoyage + buscas externas
+                </span>
               </div>
 
               {/* A busca externa é exibida sempre, abaixo dos guias do Wikivoyage. */}
               {webNotice && webList.length === 0 && (
-                <div className={styles.noticeCard}><p>{webNotice}</p></div>
+                <div className={styles.noticeCard}>
+                  <p>{webNotice}</p>
+                </div>
               )}
 
               {webList.length > 0 && (
                 <div className={styles.grid}>
                   {webList.map((webItem) => {
-                    const saved = savedUrls.has(webItem.id || webItem.url || "");
-                    const thumbUrl = (webItem.raw as any)?.imageUrl as string | null | undefined;
+                    const saved = savedUrls.has(
+                      webItem.id || webItem.url || "",
+                    );
+                    const thumbUrl = (webItem.raw as any)?.imageUrl as
+                      | string
+                      | null
+                      | undefined;
                     return (
                       <div key={webItem.id} className={styles.card}>
                         <div>
-                          {thumbUrl && <img src={thumbUrl} alt={webItem.title} className={styles.cardThumb} loading="lazy" />}
-                          <div className={styles.cardHeader}><span className={styles.sourceTag}>{webItem.source}</span></div>
+                          {thumbUrl && (
+                            <img
+                              src={thumbUrl}
+                              alt={webItem.title}
+                              className={styles.cardThumb}
+                              loading="lazy"
+                            />
+                          )}
+                          <div className={styles.cardHeader}>
+                            <span className={styles.sourceTag}>
+                              {webItem.source}
+                            </span>
+                          </div>
                           <h3 className={styles.cardTitle}>{webItem.title}</h3>
-                          <p className={styles.cardDesc}>{webItem.description}</p>
+                          <p className={styles.cardDesc}>
+                            {webItem.description}
+                          </p>
                         </div>
                         <div className={styles.cardActions}>
-                          <a href={webItem.url || "#"} target="_blank" rel="noopener noreferrer" className={styles.actionBtnPrimary}>
-                            <ExternalLink size={15} /><span>Ler guia completo</span>
+                          <a
+                            href={webItem.url || "#"}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={styles.actionBtnPrimary}>
+                            <ExternalLink size={15} />
+                            <span>Ler guia completo</span>
                           </a>
-                          <button type="button" className={saved ? styles.savedBtn : styles.saveBtn} onClick={() => saveToBox(webItem)} disabled={saved}>
-                            <BookmarkPlus size={16} /><span>{saved ? "Guardado" : "Guardar"}</span>
+                          <button
+                            type="button"
+                            className={saved ? styles.savedBtn : styles.saveBtn}
+                            onClick={() => saveToBox(webItem)}
+                            disabled={saved}>
+                            <BookmarkPlus size={16} />
+                            <span>{saved ? "Guardado" : "Guardar"}</span>
                           </button>
                         </div>
                       </div>
@@ -871,23 +955,92 @@ export function DiscoverClient({
               )}
 
               <div className={styles.aggregatorsBox}>
-                <span className={styles.aggregatorsTitle}>Mais formas de pesquisar sobre {fullDestinationForSearch}:</span>
+                <span className={styles.aggregatorsTitle}>
+                  Mais formas de pesquisar sobre {fullDestinationForSearch}:
+                </span>
                 <div className={styles.aggregatorsRow}>
-                  <a href={webFallback?.google || `https://www.google.com/search?q=${encodeURIComponent(`o que fazer em ${fullDestinationForSearch} dicas turismo roteiro`)}`} target="_blank" rel="noopener noreferrer" className={styles.aggregatorBtn}><ExternalLink size={14} /> 🔍 Pesquisar atrações no Google</a>
-                  <a href={webFallback?.brave || `https://search.brave.com/search?q=${encodeURIComponent(`o que fazer em ${fullDestinationForSearch} dicas turismo roteiro`)}`} target="_blank" rel="noopener noreferrer" className={styles.aggregatorBtn}><ExternalLink size={14} /> Pesquisar no Brave</a>
-                  <a href={webFallback?.duckduckgo || `https://duckduckgo.com/?q=${encodeURIComponent(`o que fazer em ${fullDestinationForSearch} dicas turismo`)}`} target="_blank" rel="noopener noreferrer" className={styles.aggregatorBtn}><ExternalLink size={14} /> 🦆 Guias no DuckDuckGo</a>
-                  <a href={webFallback?.youtube || `https://www.youtube.com/results?search_query=${encodeURIComponent(`roteiro viagem ${fullDestinationForSearch}`)}`} target="_blank" rel="noopener noreferrer" className={styles.aggregatorBtn}><ExternalLink size={14} /> ▶️ Roteiros e vlogs no YouTube</a>
-                  <a href={webFallback?.tripadvisor || `https://www.tripadvisor.com.br/Search?q=${encodeURIComponent(`atrações ${fullDestinationForSearch}`)}`} target="_blank" rel="noopener noreferrer" className={styles.aggregatorBtn}><ExternalLink size={14} /> 🧭 Avaliações no TripAdvisor</a>
+                  <a
+                    href={
+                      webFallback?.google ||
+                      `https://www.google.com/search?q=${encodeURIComponent(`o que fazer em ${fullDestinationForSearch} dicas turismo roteiro`)}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.aggregatorBtn}>
+                    <ExternalLink size={14} /> 🔍 Pesquisar atrações no Google
+                  </a>
+                  <a
+                    href={
+                      webFallback?.brave ||
+                      `https://search.brave.com/search?q=${encodeURIComponent(`o que fazer em ${fullDestinationForSearch} dicas turismo roteiro`)}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.aggregatorBtn}>
+                    <ExternalLink size={14} /> Pesquisar no Brave
+                  </a>
+                  <a
+                    href={
+                      webFallback?.duckduckgo ||
+                      `https://duckduckgo.com/?q=${encodeURIComponent(`o que fazer em ${fullDestinationForSearch} dicas turismo`)}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.aggregatorBtn}>
+                    <ExternalLink size={14} /> 🦆 Guias no DuckDuckGo
+                  </a>
+                  <a
+                    href={
+                      webFallback?.youtube ||
+                      `https://www.youtube.com/results?search_query=${encodeURIComponent(`roteiro viagem ${fullDestinationForSearch}`)}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.aggregatorBtn}>
+                    <ExternalLink size={14} /> ▶️ Roteiros e vlogs no YouTube
+                  </a>
+                  <a
+                    href={
+                      webFallback?.tripadvisor ||
+                      `https://www.tripadvisor.com.br/Search?q=${encodeURIComponent(`atrações ${fullDestinationForSearch}`)}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.aggregatorBtn}>
+                    <ExternalLink size={14} /> 🧭 Avaliações no TripAdvisor
+                  </a>
                 </div>
               </div>
 
-              <div className={styles.degradedBanner} style={{ marginTop: "1rem" }}>
+              <div
+                className={styles.degradedBanner}
+                style={{ marginTop: "1rem" }}>
                 <form onSubmit={handleManualSave} className={styles.manualForm}>
                   <h4>Guardar um link de viagem</h4>
                   <div className={styles.manualRow}>
-                    <input type="text" placeholder="Título da dica" value={manualTitle} onChange={(e) => setManualTitle(e.target.value)} className={styles.manualInput} />
-                    <input type="url" placeholder="Cole o link (https://...)" value={manualUrl} onChange={(e) => setManualUrl(e.target.value)} className={styles.manualInputUrl} />
-                    <button type="submit" className={styles.manualSaveBtn} disabled={savingManual}><BookmarkPlus size={16} /><span>{savingManual ? "Salvando..." : "Guardar na Caixa"}</span></button>
+                    <input
+                      type="text"
+                      placeholder="Título da dica"
+                      value={manualTitle}
+                      onChange={(e) => setManualTitle(e.target.value)}
+                      className={styles.manualInput}
+                    />
+                    <input
+                      type="url"
+                      placeholder="Cole o link (https://...)"
+                      value={manualUrl}
+                      onChange={(e) => setManualUrl(e.target.value)}
+                      className={styles.manualInputUrl}
+                    />
+                    <button
+                      type="submit"
+                      className={styles.manualSaveBtn}
+                      disabled={savingManual}>
+                      <BookmarkPlus size={16} />
+                      <span>
+                        {savingManual ? "Salvando..." : "Guardar na Caixa"}
+                      </span>
+                    </button>
                   </div>
                 </form>
               </div>
@@ -901,10 +1054,19 @@ export function DiscoverClient({
                     return (
                       <div key={webItem.id} className={styles.card}>
                         <div>
-                          {(webItem.raw as any)?.imageUrl && <img src={(webItem.raw as any).imageUrl} alt={webItem.title} className={styles.cardThumb} loading="lazy" />}
+                          {(webItem.raw as any)?.imageUrl && (
+                            <img
+                              src={(webItem.raw as any).imageUrl}
+                              alt={webItem.title}
+                              className={styles.cardThumb}
+                              loading="lazy"
+                            />
+                          )}
                         </div>
                         <div className={styles.cardHeader}>
-                          <span className={styles.sourceTag}>{webItem.source}</span>
+                          <span className={styles.sourceTag}>
+                            {webItem.source}
+                          </span>
                         </div>
                         <h3 className={styles.cardTitle}>{webItem.title}</h3>
                         <p className={styles.cardDesc}>{webItem.description}</p>
@@ -915,7 +1077,11 @@ export function DiscoverClient({
                             rel="noopener noreferrer"
                             className={styles.actionBtnPrimary}>
                             <ExternalLink size={15} />
-                            <span>{webItem.source.includes("Wikivoyage") ? "Ler guia completo" : "Abrir artigo"}</span>
+                            <span>
+                              {webItem.source.includes("Wikivoyage")
+                                ? "Ler guia completo"
+                                : "Abrir artigo"}
+                            </span>
                           </a>
                           <button
                             type="button"
