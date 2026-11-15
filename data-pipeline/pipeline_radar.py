@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
 """
 ==============================================================================
-GARIMPATRIP - PIPELINE DE INGESTÃO E ANÁLISE DE DADOS (GitHub Actions)
+GARIMPATRIP - PIPELINE DE INGESTÃO E MANUTENÇÃO (GitHub Actions)
 Executado diariamente às 06:00 UTC (03:00 Horário de Brasília)
 
 O que este robô faz, nesta ordem:
-  1. Garante que as 15 rotas base existam em monitored_routes.
-  2. Preenche dim_calendar (2 anos para trás e ~13 meses para frente) com
-     estação do ano, férias escolares e feriados nacionais (BrasilAPI).
-  3. Para cada rota ATIVA (base + rotas com alertas), consulta a Travelpayouts
-     uma única vez (deduplicação) e grava os preços em price_history.
-  4. Desativa alertas de usuários inativos há mais de 60 dias.
-  5. Apaga preços com mais de 2 anos (retenção móvel).
+  1. Captura cotações de câmbio (USD, EUR, ARS) e grava em exchange_rates.
+  2. Garante que as 15 rotas base estratégicas existam em monitored_routes.
+  3. Preenche dim_calendar (2 anos para trás e ~13 meses para frente).
+  4. Para cada rota ATIVA (base + alertas dos usuários), consulta preços
+     na Travelpayouts uma única vez (sem duplicar chamadas).
+  5. Desativa alertas de usuários inativos há mais de 60 dias.
+  6. Exclui contas sem acesso há mais de 60 dias (libera espaço no plano Free).
+  7. Apaga preços com mais de 2 anos (retenção móvel).
 
 Usa a API REST do Supabase com a chave service_role (somente nos Secrets do GitHub).
 ==============================================================================
@@ -32,32 +33,31 @@ SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
 MONTHS_AHEAD = 3            # meses de partida consultados por rota
 CALENDAR_PAST_DAYS = 730    # 2 anos para trás
 CALENDAR_FUTURE_DAYS = 400  # ~13 meses para frente
-INACTIVITY_DAYS = 90
+INACTIVITY_DAYS = 60        # regra de 60 dias
 
-# 15 ROTAS BASE ESTRATÉGICAS (Deduplicação de consumo de API)
+# 15 ROTAS BASE ESTRATÉGICAS (10 GRU, 3 GIG, 2 VCP)
 BASE_ROUTES = [
-    # 10 rotas com saída de São Paulo (GRU)
+    # 10 rotas saindo de São Paulo (GRU)
     {"origin": "GRU", "destination": "CNF", "name": "São Paulo -> Belo Horizonte"},
     {"origin": "GRU", "destination": "GIG", "name": "São Paulo -> Rio de Janeiro"},
     {"origin": "GRU", "destination": "BSB", "name": "São Paulo -> Brasília"},
-    {"origin": "GRU", "destination": "SSA", "name": "São Paulo -> Salvador"},
-    {"origin": "GRU", "destination": "REC", "name": "São Paulo -> Recife"},
     {"origin": "GRU", "destination": "MCZ", "name": "São Paulo -> Maceió"},
+    {"origin": "GRU", "destination": "REC", "name": "São Paulo -> Recife"},
+    {"origin": "GRU", "destination": "SSA", "name": "São Paulo -> Salvador"},
     {"origin": "GRU", "destination": "FOR", "name": "São Paulo -> Fortaleza"},
     {"origin": "GRU", "destination": "MCO", "name": "São Paulo -> Orlando"},
     {"origin": "GRU", "destination": "LIS", "name": "São Paulo -> Lisboa"},
-    {"origin": "GRU", "destination": "AMS", "name": "São Paulo -> Amsterdã"},
+    {"origin": "GRU", "destination": "AMS", "name": "São Paulo -> Amsterdam"},
 
-    # 3 rotas com saída do Rio de Janeiro (GIG)
+    # 3 rotas saindo do Rio de Janeiro (GIG)
     {"origin": "GIG", "destination": "SSA", "name": "Rio de Janeiro -> Salvador"},
     {"origin": "GIG", "destination": "REC", "name": "Rio de Janeiro -> Recife"},
     {"origin": "GIG", "destination": "LIS", "name": "Rio de Janeiro -> Lisboa"},
 
-    # 2 rotas com saída de Campinas (VCP - Hub Azul)
+    # 2 rotas saindo de Campinas (VCP)
     {"origin": "VCP", "destination": "REC", "name": "Campinas -> Recife"},
     {"origin": "VCP", "destination": "MCO", "name": "Campinas -> Orlando"},
 ]
-
 
 
 # ------------------------------------------------------------------ SUPABASE
@@ -129,9 +129,22 @@ def fetch_currency_rates() -> Dict[str, float]:
             "EUR_BRL": float(data.get("EURBRL", {}).get("bid", 0)),
             "ARS_BRL": float(data.get("ARSBRL", {}).get("bid", 0)),
         }
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         print(f"[ERRO CÂMBIO]: {e}")
         return {}
+
+
+def save_currency_rates(rates: Dict[str, float]) -> None:
+    if not rates:
+        return
+    now_iso = dt.datetime.now(dt.timezone.utc).isoformat()
+    rows = [
+        {"currency_pair": pair, "rate": rate, "recorded_at": now_iso}
+        for pair, rate in rates.items()
+        if rate > 0
+    ]
+    if rows:
+        sb_insert("exchange_rates", rows)
 
 
 # ------------------------------------------------------------------ CALENDÁRIO
@@ -147,7 +160,6 @@ def season_br(d: dt.date) -> str:
 
 
 def is_school_vacation(d: dt.date) -> bool:
-    # Aproximação nacional: janeiro, julho e a partir de 15 de dezembro.
     return d.month in (1, 7) or (d.month == 12 and d.day >= 15)
 
 
@@ -159,7 +171,7 @@ def fetch_holidays(years: List[int]) -> Dict[str, Dict[str, str]]:
             res.raise_for_status()
             for h in res.json():
                 holidays[h["date"]] = {"name": h.get("name", "Feriado"), "type": h.get("type", "national")}
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             print(f"[AVISO FERIADOS {year}]: {e}")
     return holidays
 
@@ -176,7 +188,6 @@ def build_calendar(today: dt.date) -> int:
         iso = d.isoformat()
         h = holidays.get(iso)
         vacation = is_school_vacation(d)
-        # Feriado ou dia vizinho de feriado (emenda) e férias = Alta Temporada
         near_holiday = any(abs((d - hd).days) <= 1 for hd in holiday_dates)
         if vacation or near_holiday:
             period = "Alta Temporada"
@@ -268,9 +279,9 @@ def collect_prices(routes: List[Dict[str, Any]], today: dt.date) -> int:
                         "stops": int(f.get("transfers", 0)),
                         "recorded_at": recorded_at,
                     })
-            except Exception as e:  # noqa: BLE001
+            except Exception as e:
                 print(f"    [ERRO {o}->{d} {month}]: {e}")
-            time.sleep(0.4)  # respeita o limite de requisições da API
+            time.sleep(0.4)
         if rows:
             sb_insert("price_history", rows)
         sb_patch("monitored_routes", {"id": f"eq.{route['id']}"}, {"last_checked_at": recorded_at})
@@ -290,6 +301,11 @@ def run_pipeline() -> int:
 
     rates = fetch_currency_rates()
     print(f"[CÂMBIO]: Cotações capturadas: {rates}")
+    try:
+        save_currency_rates(rates)
+        print("[CÂMBIO]: Cotações salvas em exchange_rates.")
+    except Exception as e:
+        print(f"[CÂMBIO AVISO]: Não foi possível salvar cotações: {e}")
 
     ensure_base_routes()
     print(f"[ROTAS]: {len(BASE_ROUTES)} rotas base garantidas.")
@@ -305,11 +321,23 @@ def run_pipeline() -> int:
     else:
         print("[AVISO]: TRAVELPAYOUTS_API_KEY não configurada; coleta de preços pulada.")
 
-    deactivated = sb_rpc("deactivate_inactive_alerts", {"p_days": INACTIVITY_DAYS})
-    print(f"[INATIVIDADE]: {deactivated} alertas desativados.")
+    try:
+        deactivated = sb_rpc("deactivate_inactive_alerts", {"p_days": INACTIVITY_DAYS})
+        print(f"[INATIVIDADE]: {deactivated} alertas desativados.")
+    except Exception as e:
+        print(f"[INATIVIDADE AVISO]: {e}")
 
-    purged = sb_rpc("purge_old_prices", {})
-    print(f"[RETENÇÃO]: {purged} preços com mais de 2 anos removidos.")
+    try:
+        purged_users = sb_rpc("purge_inactive_accounts", {"p_days": INACTIVITY_DAYS})
+        print(f"[EXPURGO CONTAS]: {purged_users} contas inativas há mais de {INACTIVITY_DAYS} dias excluídas.")
+    except Exception as e:
+        print(f"[EXPURGO CONTAS AVISO]: {e}")
+
+    try:
+        purged_prices = sb_rpc("purge_old_prices", {})
+        print(f"[RETENÇÃO]: {purged_prices} preços com mais de 2 anos removidos.")
+    except Exception as e:
+        print(f"[RETENÇÃO AVISO]: {e}")
 
     print(f"[{dt.datetime.now()}] Pipeline finalizado com sucesso!")
     return 0
