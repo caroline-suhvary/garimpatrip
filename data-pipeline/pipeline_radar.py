@@ -64,12 +64,17 @@ BASE_ROUTES = [
 def sb_headers(extra: Optional[Dict[str, str]] = None) -> Dict[str, str]:
     headers = {
         "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {SUPABASE_KEY}",
         "Content-Type": "application/json",
     }
+    # Chaves legadas (JWT) começam com 'ey' e usam Bearer.
+    # Novas chaves secretas ('sb_secret_') vão apenas no 'apikey'.
+    if SUPABASE_KEY.startswith("ey"):
+        headers["Authorization"] = f"Bearer {SUPABASE_KEY}"
+
     if extra:
         headers.update(extra)
     return headers
+
 
 
 def sb_get(table: str, params: Dict[str, str]) -> List[Dict[str, Any]]:
@@ -120,18 +125,33 @@ def sb_rpc(fn: str, payload: Dict[str, Any]) -> Any:
 
 # ------------------------------------------------------------------ CÂMBIO
 def fetch_currency_rates() -> Dict[str, float]:
-    """Obtém cotações do dia de USD, EUR e ARS para BRL (AwesomeAPI - 100% aberta)"""
-    url = "https://economia.awesomeapi.com.br/last/USD-BRL,EUR-BRL,ARS-BRL"
+    """Obtém cotações do dia de USD, EUR e ARS para BRL com fallback."""
     try:
+        url = "https://economia.awesomeapi.com.br/last/USD-BRL,EUR-BRL,ARS-BRL"
         data = requests.get(url, timeout=10).json()
+        usd = float(data.get("USDBRL", {}).get("bid", 0))
+        eur = float(data.get("EURBRL", {}).get("bid", 0))
+        ars = float(data.get("ARSBRL", {}).get("bid", 0))
+        if usd > 0:
+            return {"USD_BRL": usd, "EUR_BRL": eur, "ARS_BRL": ars}
+    except Exception:
+        pass
+
+    try:
+        res = requests.get("https://open.er-api.com/v6/latest/USD", timeout=10).json()
+        rates = res.get("rates", {})
+        usd_brl = float(rates.get("BRL", 0))
+        eur_usd = float(rates.get("EUR", 1))
+        ars_usd = float(rates.get("ARS", 1))
         return {
-            "USD_BRL": float(data.get("USDBRL", {}).get("bid", 0)),
-            "EUR_BRL": float(data.get("EURBRL", {}).get("bid", 0)),
-            "ARS_BRL": float(data.get("ARSBRL", {}).get("bid", 0)),
+            "USD_BRL": round(usd_brl, 4),
+            "EUR_BRL": round(usd_brl / eur_usd, 4) if eur_usd else 0.0,
+            "ARS_BRL": round(usd_brl / ars_usd, 4) if ars_usd else 0.0,
         }
     except Exception as e:
         print(f"[ERRO CÂMBIO]: {e}")
         return {}
+
 
 
 def save_currency_rates(rates: Dict[str, float]) -> None:
