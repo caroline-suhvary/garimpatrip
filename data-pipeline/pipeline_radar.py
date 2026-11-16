@@ -311,56 +311,66 @@ def collect_prices(routes: List[Dict[str, Any]], today: dt.date) -> int:
 
 
 # ------------------------------------------------------------------ MAIN
+# ------------------------------------------------------------------ MAIN
 def run_pipeline() -> int:
+    start_time = time.time()
     print(f"[{dt.datetime.now()}] Iniciando Pipeline do GarimpaTrip...")
     if not SUPABASE_URL or not SUPABASE_KEY:
         print("[ERRO]: Configure NEXT_PUBLIC_SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY nos Secrets do GitHub.")
         return 1
 
     today = dt.date.today()
-
-    rates = fetch_currency_rates()
-    print(f"[CÂMBIO]: Cotações capturadas: {rates}")
-    try:
-        save_currency_rates(rates)
-        print("[CÂMBIO]: Cotações salvas em exchange_rates.")
-    except Exception as e:
-        print(f"[CÂMBIO AVISO]: Não foi possível salvar cotações: {e}")
-
-    ensure_base_routes()
-    print(f"[ROTAS]: {len(BASE_ROUTES)} rotas base garantidas.")
-
-    days = build_calendar(today)
-    print(f"[CALENDÁRIO]: {days} dias atualizados em dim_calendar.")
-
-    if TRAVELPAYOUTS_TOKEN:
-        routes = active_routes()
-        print(f"[PREÇOS]: Processando {len(routes)} rotas ativas (uma consulta por rota, sem duplicar).")
-        total = collect_prices(routes, today)
-        print(f"[PREÇOS]: {total} registros gravados em price_history.")
-    else:
-        print("[AVISO]: TRAVELPAYOUTS_API_KEY não configurada; coleta de preços pulada.")
+    status = "success"
+    err_msg = None
+    total_records = 0
 
     try:
+        rates = fetch_currency_rates()
+        print(f"[CÂMBIO]: Cotações capturadas: {rates}")
+
+        ensure_base_routes()
+        print(f"[ROTAS]: {len(BASE_ROUTES)} rotas base garantidas.")
+
+        days = build_calendar(today)
+        print(f"[CALENDÁRIO]: {days} dias atualizados em dim_calendar.")
+
+        if TRAVELPAYOUTS_TOKEN:
+            routes = active_routes()
+            print(f"[PREÇOS]: Processando {len(routes)} rotas ativas (uma consulta por rota, sem duplicar).")
+            total_records = collect_prices(routes, today)
+            print(f"[PREÇOS]: {total_records} registros gravados em price_history.")
+        else:
+            print("[AVISO]: TRAVELPAYOUTS_API_KEY não configurada; coleta de preços pulada.")
+
         deactivated = sb_rpc("deactivate_inactive_alerts", {"p_days": INACTIVITY_DAYS})
         print(f"[INATIVIDADE]: {deactivated} alertas desativados.")
-    except Exception as e:
-        print(f"[INATIVIDADE AVISO]: {e}")
 
+        purged = sb_rpc("purge_old_prices", {})
+        print(f"[RETENÇÃO]: {purged} preços com mais de 2 anos removidos.")
+
+    except Exception as exc:
+        status = "failed"
+        err_msg = str(exc)
+        print(f"[ERRO NO PIPELINE]: {exc}")
+
+    duration = round(time.time() - start_time, 2)
+
+    # Registra a execução no Supabase para o painel de FinOps do Looker Studio
     try:
-        purged_users = sb_rpc("purge_inactive_accounts", {"p_days": INACTIVITY_DAYS})
-        print(f"[EXPURGO CONTAS]: {purged_users} contas inativas há mais de {INACTIVITY_DAYS} dias excluídas.")
-    except Exception as e:
-        print(f"[EXPURGO CONTAS AVISO]: {e}")
+        sb_insert("pipeline_runs", [{
+            "pipeline_name": "daily_radar",
+            "status": status,
+            "duration_seconds": duration,
+            "records_inserted": total_records,
+            "error_message": err_msg
+        }])
+        print(f"[FINOPS]: Execução gravada em pipeline_runs ({duration}s, status: {status}).")
+    except Exception as log_err:
+        print(f"[AVISO]: Não foi possível registrar em pipeline_runs: {log_err}")
 
-    try:
-        purged_prices = sb_rpc("purge_old_prices", {})
-        print(f"[RETENÇÃO]: {purged_prices} preços com mais de 2 anos removidos.")
-    except Exception as e:
-        print(f"[RETENÇÃO AVISO]: {e}")
+    print(f"[{dt.datetime.now()}] Pipeline finalizado com {status} ({duration}s)!")
+    return 0 if status == "success" else 1
 
-    print(f"[{dt.datetime.now()}] Pipeline finalizado com sucesso!")
-    return 0
 
 
 if __name__ == "__main__":

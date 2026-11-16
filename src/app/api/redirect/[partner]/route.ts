@@ -1,30 +1,36 @@
-import { NextResponse } from 'next/server';
-import { AVAILABLE_PARTNERS } from '@/lib/affiliates';
-import { createClient } from '@supabase/supabase-js';
+import { NextResponse } from "next/server";
+import { AVAILABLE_PARTNERS } from "@/lib/affiliates";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ partner: string }> }
+  { params }: { params: Promise<{ partner: string }> },
 ) {
   const resolvedParams = await params;
   const partnerId = resolvedParams.partner?.toLowerCase();
   const partner = AVAILABLE_PARTNERS[partnerId];
 
   if (!partner) {
-    return NextResponse.redirect(new URL('/', request.url));
+    return NextResponse.redirect(new URL("/", request.url));
   }
 
-  // Registra clique no Supabase para Engenharia de Dados
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (supabaseUrl && serviceKey) {
+  // Registra clique em site_events com geolocalização Vercel
+  const admin = getSupabaseAdmin();
+  if (admin) {
     try {
-      const supabase = createClient(supabaseUrl, serviceKey);
-      await supabase.from('affiliate_clicks').insert({
-        partner_name: partner.name,
+      const country = request.headers.get("x-vercel-ip-country") || "BR";
+      const region = request.headers.get("x-vercel-ip-country-region") || null;
+      const city = request.headers.get("x-vercel-ip-city") || null;
+
+      await admin.from("site_events").insert({
+        event_type: "partner_click",
+        target_name: partner.name,
         category: partner.category,
-        target_url: partner.fallbackUrl,
+        url: partner.fallbackUrl,
+        user_region: region ? decodeURIComponent(region) : null,
+        user_city: city ? decodeURIComponent(city) : null,
+        user_country: country,
+        metadata: { source: "redirect_link" },
       });
     } catch {}
   }

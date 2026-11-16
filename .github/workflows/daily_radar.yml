@@ -3,7 +3,7 @@ name: GarimpaTrip Daily Radar Pipeline
 on:
   schedule:
     # Executa todos os dias às 06:00 UTC (03:00 de Brasília)
-    - cron: '0 6 * * *'
+    - cron: "0 6 * * *"
   workflow_dispatch: # Permite disparar manualmente pelo botão no GitHub
 
 jobs:
@@ -17,7 +17,7 @@ jobs:
       - name: Configurar Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: "3.12"
 
       - name: Instalar dependências
         run: pip install -r data-pipeline/requirements.txt
@@ -28,3 +28,11 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: python data-pipeline/pipeline_radar.py
+
+      - name: Sincronizar Lakehouse (DuckDB -> Parquet -> BigQuery)
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+        run: python data-pipeline/sync_to_bigquery.py

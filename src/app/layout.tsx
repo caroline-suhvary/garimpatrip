@@ -2,16 +2,14 @@ import React from "react";
 import type { Metadata, Viewport } from "next";
 import { Navbar } from "@/components/layout/Navbar";
 import "@/styles/globals.css";
-import Script from "next/script";
+// import Script from "next/script";
 
 export const metadata: Metadata = {
   title: "GarimpaTrip | Planejador Inteligente de Viagens",
   description:
     "Garimpe a viagem perfeita sem 30 abas abertas. Agregador inteligente e transparente de viagens.",
   icons: {
-    icon: [
-      { url: "/icon.svg", type: "image/svg+xml" },
-    ],
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
   },
 };
 
@@ -28,7 +26,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
-      <Script
+      {/* <Script
         id="travelpayouts-verification"
         strategy="afterInteractive"
         dangerouslySetInnerHTML={{
@@ -42,7 +40,7 @@ export default function RootLayout({
             })();
           `,
         }}
-      />
+      /> */}
 
       <body suppressHydrationWarning>
         <Navbar />

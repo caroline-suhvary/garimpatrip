@@ -42,8 +42,8 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.4rem;
-  background-color: #1A73E8;
-  color: #FFFFFF;
+  background-color: #1a73e8;
+  color: #ffffff;
   border-radius: var(--radius-pill);
   font-size: 0.9rem;
   font-weight: 700;
@@ -52,7 +52,7 @@
 }
 
 .lookerBtn:hover {
-  background-color: #1557B0;
+  background-color: #1557b0;
 }
 
 .metricsGrid {
@@ -63,7 +63,7 @@
 }
 
 .metricCard {
-  background-color: #FFFFFF;
+  background-color: #ffffff;
   border: 1px solid var(--bg-sand-300);
   border-radius: var(--radius-card);
   padding: 1.5rem;
@@ -89,7 +89,7 @@
 }
 
 .chartCard {
-  background-color: #FFFFFF;
+  background-color: #ffffff;
   border: 1px solid var(--bg-sand-300);
   border-radius: var(--radius-bento);
   padding: 2rem;
@@ -177,8 +177,8 @@
 }
 
 .legendNormal {
-  background-color: #FEF3C7;
-  color: #B45309;
+  background-color: #fef3c7;
+  color: #b45309;
 }
 
 .legendHoliday {
@@ -193,17 +193,8 @@
   align-items: stretch;
   gap: 10px;
   padding: 1rem 0 0.5rem;
-  border-bottom: 2px solid #E5E7EB;
+  border-bottom: 2px solid #e5e7eb;
   overflow-x: auto;
-}
-
-.barCol {
-  flex: 1;
-  min-width: 42px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
 }
 
 .barTrack {
@@ -225,18 +216,7 @@
 }
 
 .barHoliday {
-  background-color: #F87171;
-}
-
-.barValue,
-.barValueHoliday {
-  font-size: 0.68rem;
-  font-weight: 700;
-  color: #4B5563;
-}
-
-.barValueHoliday {
-  color: var(--danger);
+  background-color: #f87171;
 }
 
 .barLabel {
@@ -248,7 +228,7 @@
 
 /* Alertas */
 .alertsCard {
-  background-color: #FFFFFF;
+  background-color: #ffffff;
   border: 1px solid var(--bg-sand-300);
   border-radius: var(--radius-bento);
   padding: 2rem;
@@ -262,13 +242,6 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-}
-
-.alertForm {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1.2fr 1.2fr auto;
-  gap: 0.75rem;
-  align-items: end;
 }
 
 .alertList {
@@ -298,8 +271,8 @@
   font-weight: 800;
   padding: 0.2rem 0.6rem;
   border-radius: var(--radius-pill);
-  background-color: #D1FAE5;
-  color: #065F46;
+  background-color: #d1fae5;
+  color: #065f46;
 }
 
 .inlineLink {
@@ -345,4 +318,160 @@
   .alertsCard {
     padding: 1.25rem;
   }
+}
+
+/* Seções de rotas visuais */
+.section {
+  margin-bottom: 2.2rem;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.2rem;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+}
+
+.sectionTitle {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--brand-dark);
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0;
+}
+
+.sectionSubtitle {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-top: 0.3rem;
+  margin-bottom: 0;
+}
+
+.filterTabs {
+  display: flex;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.filterTab {
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.8rem;
+  font-weight: 700;
+  border: 1px solid var(--bg-sand-300);
+  background-color: #ffffff;
+  color: #4b5563;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filterTab:hover {
+  background-color: var(--bg-sand-100);
+  color: var(--brand-dark);
+}
+
+.filterTabActive {
+  background-color: var(--brand-amber);
+  color: #ffffff;
+  border-color: var(--brand-amber);
+}
+
+.routeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.85rem;
+}
+
+.routeCard {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  border: 2px solid var(--bg-sand-300);
+  background-color: #ffffff;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+  min-height: 75px;
+}
+
+.routeCard:hover {
+  border-color: var(--brand-amber);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.routeCardActive {
+  border-color: var(--brand-amber);
+  background-color: #fffbeb;
+  box-shadow: var(--shadow-sm);
+}
+
+.routeCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.routeCardName {
+  display: block;
+  font-weight: 800;
+  font-size: 0.92rem;
+  color: var(--brand-dark);
+}
+
+.routeCardCode {
+  display: block;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-top: 0.2rem;
+}
+
+.routeActiveBadge {
+  margin-top: 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--brand-amber);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.emptyAlertsCard {
+  background-color: var(--bg-sand-50);
+  border: 1px dashed var(--bg-sand-300);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  color: #4b5563;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* Ajuste nas colunas do gráfico para caber 'R$ 1.250' com folga */
+.barCol {
+  flex: 1;
+  min-width: 58px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.barValue,
+.barValueHoliday {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #4b5563;
+  white-space: nowrap;
+}
+
+.barValueHoliday {
+  color: var(--danger);
 }

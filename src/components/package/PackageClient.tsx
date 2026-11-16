@@ -2,6 +2,7 @@
 // Pacote Oficial: as 11 áreas da viagem. Áreas 1–7 e 10–11 guardam itens com custo e status,
 // a área 8 é o cronograma diário e a área 9 consolida o orçamento.
 import React, { useCallback, useEffect, useState } from "react";
+import { RadarPackageWidget } from "@/components/package/RadarPackageWidget";
 import { Plus } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useTrips } from "@/hooks/useTrips";
@@ -235,7 +236,14 @@ export function PackageClient({ initialTripId }: { initialTripId?: string }) {
                         </span>
                       )}
                     </div>
-
+                    {cat.id === 1 && supabase && selectedTrip && (
+                      <RadarPackageWidget
+                        supabase={supabase}
+                        trip={selectedTrip}
+                        items={items}
+                        onError={setError}
+                      />
+                    )}
                     {cat.id === 7 && <CurrencyRates />}
                     {cat.id === 8 && supabase && (
                       <ScheduleArea
